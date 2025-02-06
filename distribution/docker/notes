@@ -1,0 +1,8 @@
+Publish data using Kafka quickstart scripts: https://kafka.apache.org/quickstart
+
+# Create topic
+bin/kafka-topics.sh --create --topic events --bootstrap-server localhost:9094
+
+# Publish data
+bin/kafka-console-producer.sh --topic events --bootstrap-server localhost:9094
+>{"timestamp": 1738883126000, "d1": "v1"}
