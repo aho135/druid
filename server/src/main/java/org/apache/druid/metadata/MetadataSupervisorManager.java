@@ -63,4 +63,5 @@ public interface MetadataSupervisorManager
    * @return number of supervisor removed
    */
   int removeTerminatedSupervisorsOlderThan(long timestamp);
+  boolean wasSupervisorSpecModified(SupervisorSpec spec);
 }

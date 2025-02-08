@@ -70,7 +70,7 @@ services:
       - ZOO_MY_ID=1
 
   coordinator:
-    image: apache/druid:28.0.1
+    image: apache/druid:supervisor_update_11
     container_name: coordinator
     volumes:
       - druid_shared:/opt/shared
@@ -80,13 +80,14 @@ services:
       - postgres
     ports:
       - "8081:8081"
+      - "8000:8000"
     command:
       - coordinator
     env_file:
       - environment
 
   broker:
-    image: apache/druid:28.0.1
+    image: apache/druid:supervisor_update_11
     container_name: broker
     volumes:
       - broker_var:/opt/druid/var
@@ -96,13 +97,14 @@ services:
       - coordinator
     ports:
       - "8082:8082"
+      - "8001:8000"
     command:
       - broker
     env_file:
       - environment
 
   historical:
-    image: apache/druid:28.0.1
+    image: apache/druid:supervisor_update_11
     container_name: historical
     volumes:
       - druid_shared:/opt/shared
@@ -113,13 +115,14 @@ services:
       - coordinator
     ports:
       - "8083:8083"
+      - "8002:8000"
     command:
       - historical
     env_file:
       - environment
 
   middlemanager:
-    image: apache/druid:28.0.1
+    image: apache/druid:supervisor_update_11
     container_name: middlemanager
     volumes:
       - druid_shared:/opt/shared
@@ -131,13 +134,14 @@ services:
     ports:
       - "8091:8091"
       - "8100-8105:8100-8105"
+      - "8003:8000"
     command:
       - middleManager
     env_file:
       - environment
 
   router:
-    image: apache/druid:28.0.1
+    image: apache/druid:supervisor_update_11
     container_name: router
     volumes:
       - router_var:/opt/druid/var
@@ -147,6 +151,7 @@ services:
       - coordinator
     ports:
       - "8888:8888"
+      - "8004:8000"
     command:
       - router
     env_file:

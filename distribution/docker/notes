@@ -6,3 +6,9 @@ bin/kafka-topics.sh --create --topic events --bootstrap-server localhost:9094
 # Publish data
 bin/kafka-console-producer.sh --topic events --bootstrap-server localhost:9094
 >{"timestamp": 1738883126000, "d1": "v1"}
+
+# Query postgres
+On the postgres container run:
+psql -U druid -W druid
+password: FoolishPassword
+SELECT * FROM druid_supervisors;
