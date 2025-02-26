@@ -157,6 +157,7 @@ services:
       - "8091:8091"
       - "8100-8105:8100-8105"
       - "8003:8000"
+      - "5000:5000"
     command:
       - middleManager
     env_file:
