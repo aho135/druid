@@ -5,49 +5,35 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.local</groupId>
-  <artifactId>flink-kafka-app</artifactId>
+  <artifactId>druid-query</artifactId>
   <version>1.0</version>
 
   <properties>
-    <flink.version>1.20.0</flink.version>
-    <kafka.version>3.8.1</kafka.version>
+    <avatica.version>1.22.0</avatica.version>
   </properties>
   <dependencies>
     <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-streaming-java</artifactId>
-      <version>${flink.version}</version>
+      <groupId>org.apache.calcite.avatica</groupId>
+      <artifactId>avatica</artifactId>
+      <version>${avatica.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-core</artifactId>
-      <version>${flink.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-connector-kafka</artifactId>
-      <version>3.4.0-1.20</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka-clients</artifactId>
-      <version>${kafka.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>2.11.0</version>
-    </dependency>
-
   </dependencies>
   <build>
     <plugins>
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.5.0</version>
+        <configuration>
+          <mainClass>DruidJDBCQuery</mainClass>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>8</source>
-          <target>8</target>
+          <source>9</source>
+          <target>9</target>
         </configuration>
       </plugin>
       <plugin>
@@ -64,7 +50,7 @@
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
-                    <Main-Class>FlinkKafkaConnector</Main-Class>
+                    <Main-Class>DruidJDBCQuery</Main-Class>
                   </manifestEntries>
                 </transformer>
               </transformers>
