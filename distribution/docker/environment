@@ -27,7 +27,7 @@ DRUID_SINGLE_NODE_CONF=micro-quickstart
 
 druid_emitter_logging_logLevel=debug
 
-druid_extensions_loadList=["druid-histogram", "druid-datasketches", "druid-lookups-cached-global", "postgresql-metadata-storage", "druid-multi-stage-query", "druid-kafka-indexing-service"]
+druid_extensions_loadList=["druid-histogram", "druid-datasketches", "druid-lookups-cached-global", "postgresql-metadata-storage", "druid-multi-stage-query", "druid-kafka-indexing-service", "prometheus-emitter"]
 
 druid_zk_service_host=zookeeper
 
@@ -51,3 +51,9 @@ druid_processing_numMergeBuffers=2
 druid_query_groupBy_maxOnDiskStorage=1000000000
 
 DRUID_LOG4J=<?xml version="1.0" encoding="UTF-8" ?><Configuration status="WARN"><Appenders><Console name="Console" target="SYSTEM_OUT"><PatternLayout pattern="%d{ISO8601} %p [%t] %c - %m%n"/></Console></Appenders><Loggers><Root level="info"><AppenderRef ref="Console"/></Root><Logger name="org.apache.druid.jetty.RequestLog" additivity="false" level="DEBUG"><AppenderRef ref="Console"/></Logger></Loggers></Configuration>
+
+druid_request_logging_type=slf4j
+druid_emitter=composing
+druid_emitter_composing_emitters=["logging","prometheus"]
+druid_emitter_prometheus_port=9090
+druid_emitter_prometheus_namespace=moncevent
