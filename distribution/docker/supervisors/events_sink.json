@@ -1,0 +1,120 @@
+{
+    "type": "kafka",
+    "spec": {
+        "dataSchema": {
+            "dataSource": "events_sink",
+            "timestampSpec": {
+                "column": "timestamp",
+                "format": "auto",
+                "missingValue": null
+            },
+            "dimensionsSpec": {
+                "dimensions": [],
+                "dimensionExclusions": [
+                    "__time",
+                    "timestamp"
+                ],
+                "includeAllDimensions": false,
+                "useSchemaDiscovery": true
+            },
+            "metricsSpec": [],
+            "granularitySpec": {
+                "type": "uniform",
+                "segmentGranularity": "HOUR",
+                "queryGranularity": {
+                    "type": "none"
+                },
+                "rollup": true,
+                "intervals": []
+            },
+            "transformSpec": {
+                "filter": null,
+                "transforms": []
+            }
+        },
+        "ioConfig": {
+            "topic": "events_sink",
+            "topicPattern": null,
+            "inputFormat": {
+                "type": "json",
+                "keepNullColumns": false
+            },
+            "replicas": 1,
+            "taskCount": 1,
+            "taskDuration": "PT3600S",
+            "consumerProperties": {
+                "bootstrap.servers": "kafka:9092"
+            },
+            "autoScalerConfig": null,
+            "pollTimeout": 100,
+            "startDelay": "PT5S",
+            "period": "PT30S",
+            "useEarliestOffset": false,
+            "completionTimeout": "PT1800S",
+            "lateMessageRejectionPeriod": null,
+            "earlyMessageRejectionPeriod": null,
+            "lateMessageRejectionStartDateTime": null,
+            "configOverrides": null,
+            "idleConfig": null,
+            "stopTaskCount": 1,
+            "stream": "events_sink",
+            "useEarliestSequenceNumber": false,
+            "type": "kafka"
+        },
+        "tuningConfig": {
+            "type": "kafka",
+            "appendableIndexSpec": {
+                "type": "onheap",
+                "preserveExistingMetrics": false
+            },
+            "maxRowsInMemory": 150000,
+            "maxBytesInMemory": 0,
+            "skipBytesInMemoryOverheadCheck": false,
+            "maxRowsPerSegment": 5000000,
+            "maxTotalRows": null,
+            "intermediatePersistPeriod": "PT10M",
+            "maxPendingPersists": 0,
+            "indexSpec": {
+                "bitmap": {
+                    "type": "roaring"
+                },
+                "dimensionCompression": "lz4",
+                "stringDictionaryEncoding": {
+                    "type": "utf8"
+                },
+                "metricCompression": "lz4",
+                "longEncoding": "longs"
+            },
+            "indexSpecForIntermediatePersists": {
+                "bitmap": {
+                    "type": "roaring"
+                },
+                "dimensionCompression": "lz4",
+                "stringDictionaryEncoding": {
+                    "type": "utf8"
+                },
+                "metricCompression": "lz4",
+                "longEncoding": "longs"
+            },
+            "reportParseExceptions": false,
+            "handoffConditionTimeout": 900000,
+            "resetOffsetAutomatically": false,
+            "segmentWriteOutMediumFactory": null,
+            "workerThreads": null,
+            "chatRetries": 8,
+            "httpTimeout": "PT10S",
+            "shutdownTimeout": "PT80S",
+            "offsetFetchPeriod": "PT30S",
+            "intermediateHandoffPeriod": "P2147483647D",
+            "logParseExceptions": false,
+            "maxParseExceptions": 2147483647,
+            "maxSavedParseExceptions": 0,
+            "numPersistThreads": 1,
+            "maxColumnsToMerge": -1,
+            "skipSequenceNumberAvailabilityCheck": false,
+            "repartitionTransitionDuration": "PT120S"
+        }
+    },
+    "context": null,
+    "suspended": false
+}

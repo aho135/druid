@@ -29,6 +29,53 @@ volumes:
 
 
 services:
+  kafka:
+    image: apache/kafka:latest
+    container_name: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,LOCALHOST://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,LOCALHOST://${DOCKER_HOST_IP:-127.0.0.1}:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,LOCALHOST:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+    ports:
+      - 9092:9092
+      - 9094:9094
+  jobmanager:
+    image: flink:1.19.1-scala_2.12
+    ports:
+      - "9081:9081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager    
+        rest.port: 9081
+        rest.bind-port: 9081
+  taskmanager:
+    image: flink:1.19.1-scala_2.12
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    scale: 1
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - "./prometheus.yml:/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
   postgres:
     container_name: postgres
     image: postgres:latest
@@ -51,7 +98,7 @@ services:
       - ZOO_MY_ID=1
 
   coordinator:
-    image: apache/druid:34.0.0
+    image: apache/druid:${version}
     container_name: coordinator
     volumes:
       - druid_shared:/opt/shared
@@ -61,13 +108,14 @@ services:
       - postgres
     ports:
       - "8081:8081"
+      - "8000:8000"
     command:
       - coordinator
     env_file:
       - environment
 
   broker:
-    image: apache/druid:34.0.0
+    image: apache/druid:${version}
     container_name: broker
     volumes:
       - broker_var:/opt/druid/var
@@ -77,13 +125,14 @@ services:
       - coordinator
     ports:
       - "8082:8082"
+      - "8001:8000"
     command:
       - broker
     env_file:
       - environment
 
   historical:
-    image: apache/druid:34.0.0
+    image: apache/druid:${version}
     container_name: historical
     volumes:
       - druid_shared:/opt/shared
@@ -94,13 +143,14 @@ services:
       - coordinator
     ports:
       - "8083:8083"
+      - "8002:8000"
     command:
       - historical
     env_file:
       - environment
 
   middlemanager:
-    image: apache/druid:34.0.0
+    image: apache/druid:${version}
     container_name: middlemanager
     volumes:
       - druid_shared:/opt/shared
@@ -112,13 +162,15 @@ services:
     ports:
       - "8091:8091"
       - "8100-8105:8100-8105"
+      - "8003:8000"
+      - "5000:5000"
     command:
       - middleManager
     env_file:
       - environment
 
   router:
-    image: apache/druid:34.0.0
+    image: apache/druid:${version}
     container_name: router
     volumes:
       - router_var:/opt/druid/var
@@ -128,6 +180,7 @@ services:
       - coordinator
     ports:
       - "8888:8888"
+      - "8004:8000"
     command:
       - router
     env_file:

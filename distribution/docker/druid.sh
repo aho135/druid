@@ -211,4 +211,4 @@ then
     mkdir -p ${DRUID_DIRS_TO_CREATE}
 fi
 
-exec bin/run-java ${JAVA_OPTS} -cp $COMMON_CONF_DIR:$SERVICE_CONF_DIR:lib/*:$DRUID_ADDITIONAL_CLASSPATH org.apache.druid.cli.Main server $@
+exec bin/run-java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000 ${JAVA_OPTS} -cp $COMMON_CONF_DIR:$SERVICE_CONF_DIR:lib/*:$DRUID_ADDITIONAL_CLASSPATH org.apache.druid.cli.Main server $@

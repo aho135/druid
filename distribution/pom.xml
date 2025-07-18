@@ -234,6 +234,8 @@
                                         <argument>-c</argument>
                                         <argument>org.apache.druid.extensions:postgresql-metadata-storage</argument>
                                         <argument>-c</argument>
+                                        <argument>org.apache.druid.extensions.contrib:prometheus-emitter</argument>
+                                        <argument>-c</argument>
                                         <argument>org.apache.druid.extensions:druid-kerberos</argument>
                                         <argument>-c</argument>
                                         <argument>org.apache.druid.extensions:druid-s3-extensions</argument>
