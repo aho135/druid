@@ -77,6 +77,7 @@ public class DimensionsAndCollector
   public void resetLastUpdateTime(List<String> labelValues)
   {
     if (ttlSeconds == null) {
+      // Don't track label values if the TTL isn't set
       return;
     }
     labelValuesToStopwatch.compute(labelValues, (k, v) -> {
