@@ -161,7 +161,8 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
       }
 
       final GroupByQuery groupByQuery = (GroupByQuery) queryPlus.getQuery();
-      return initAndMergeGroupByResults(groupByQuery, runner, responseContext, willMergeRunner);
+      GroupByQueryMetrics groupByQueryMetrics = (GroupByQueryMetrics) queryPlus.getQueryMetrics();
+      return initAndMergeGroupByResults(groupByQuery, groupByQueryMetrics, runner, responseContext, willMergeRunner);
     };
   }
 
@@ -179,6 +180,7 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
 
   private Sequence<ResultRow> initAndMergeGroupByResults(
       final GroupByQuery query,
+      GroupByQueryMetrics groupByQueryMetrics,
       QueryRunner<ResultRow> runner,
       ResponseContext context,
       boolean willMergeRunner
@@ -192,6 +194,7 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
     groupByResourcesReservationPool.reserve(
         queryResourceId,
         query,
+        groupByQueryMetrics,
         willMergeRunner,
         perQueryStats
     );

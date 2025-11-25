@@ -67,6 +67,7 @@ import org.apache.druid.query.filter.EqualityFilter;
 import org.apache.druid.query.filter.NullFilter;
 import org.apache.druid.query.filter.OrDimFilter;
 import org.apache.druid.query.filter.TypedInFilter;
+import org.apache.druid.query.groupby.DefaultGroupByQueryMetrics;
 import org.apache.druid.query.groupby.GroupByQuery;
 import org.apache.druid.query.groupby.GroupByQueryConfig;
 import org.apache.druid.query.groupby.GroupByQueryMetrics;
@@ -2035,6 +2036,7 @@ public class CursorFactoryProjectionTest extends InitializedNullHandlingTest
       resourcesReservationPool.reserve(
           new QueryResourceId(String.valueOf(query.hashCode())),
           finalQuery,
+          new DefaultGroupByQueryMetrics(),
           true,
           new GroupByStatsProvider.PerQueryStats()
       );
@@ -2266,6 +2268,24 @@ public class CursorFactoryProjectionTest extends InitializedNullHandlingTest
 
     @Override
     public void granularity(GroupByQuery query)
+    {
+
+    }
+
+    @Override
+    public void reportMergeBufferAcquisitionTime(long timeNs)
+    {
+
+    }
+
+    @Override
+    public void reportSpilledBytes(long bytes)
+    {
+
+    }
+
+    @Override
+    public void reportMergeDictionarySize(long bytes)
     {
 
     }

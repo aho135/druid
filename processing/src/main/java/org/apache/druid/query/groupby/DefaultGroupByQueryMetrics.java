@@ -58,4 +58,28 @@ public class DefaultGroupByQueryMetrics extends DefaultQueryMetrics<GroupByQuery
   {
     //Don't emit by default
   }
+
+  @Override
+  public void reportMergeBufferAcquisitionTime(long timeNs)
+  {
+    if (timeNs > 0) {
+      reportMillisTimeMetric("query/mergeBuffer/acquisitionTimeMs", timeNs);
+    }
+  }
+
+  @Override
+  public void reportSpilledBytes(long bytes)
+  {
+    if (bytes > 0) {
+      reportMetric("query/groupBy/spilledBytes", bytes);
+    }
+  }
+
+  @Override
+  public void reportMergeDictionarySize(long bytes)
+  {
+    if (bytes > 0) {
+      reportMetric("query/groupBy/mergeDictionarySize", bytes);
+    }
+  }
 }

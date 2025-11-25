@@ -55,7 +55,11 @@ public class GroupByQueryRunnerTestHelper
         toolChest
     );
 
-    Sequence<T> queryResult = theRunner.run(QueryPlus.wrap(populateResourceId(query)));
+    // Create QueryPlus with metrics attached
+    QueryPlus<T> queryPlusWithMetrics = QueryPlus.wrap(populateResourceId(query))
+                                                  .withQueryMetrics(toolChest);
+    
+    Sequence<T> queryResult = theRunner.run(queryPlusWithMetrics);
     return queryResult.toList();
   }
 
@@ -66,21 +70,27 @@ public class GroupByQueryRunnerTestHelper
       ServiceEmitter serviceEmitter
   )
   {
+    QueryToolChest toolChest = factory.getToolchest();
+    
     MetricsEmittingQueryRunner<ResultRow> metricsEmittingQueryRunner =
         new MetricsEmittingQueryRunner<ResultRow>(
             serviceEmitter,
-            factory.getToolchest(),
+            toolChest,
             runner,
             (obj, lng) -> {},
             (metrics) -> {}
         ).withWaitMeasuredFromNow();
-    QueryToolChest toolChest = factory.getToolchest();
+    
     QueryRunner<T> theRunner = new FinalizeResultsQueryRunner<>(
         toolChest.mergeResults(toolChest.preMergeQueryDecoration(metricsEmittingQueryRunner)),
         toolChest
     );
 
-    return theRunner.run(QueryPlus.wrap(populateResourceId(query))).toList();
+    // Create QueryPlus with metrics attached
+    QueryPlus<T> queryPlusWithMetrics = QueryPlus.wrap(populateResourceId(query))
+                                                  .withQueryMetrics(toolChest);
+    
+    return theRunner.run(queryPlusWithMetrics).toList();
   }
 
   public static ResultRow createExpectedRow(final GroupByQuery query, final String timestamp, Object... vals)

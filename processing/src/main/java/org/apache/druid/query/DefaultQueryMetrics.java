@@ -464,7 +464,7 @@ public class DefaultQueryMetrics<QueryType extends Query<?>> implements QueryMet
     return this;
   }
 
-  private QueryMetrics<QueryType> reportMillisTimeMetric(String metricName, long timeNs)
+  protected QueryMetrics<QueryType> reportMillisTimeMetric(String metricName, long timeNs)
   {
     return reportMetric(metricName, TimeUnit.NANOSECONDS.toMillis(timeNs));
   }

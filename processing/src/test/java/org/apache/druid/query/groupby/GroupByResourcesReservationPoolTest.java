@@ -129,6 +129,7 @@ public class GroupByResourcesReservationPoolTest
       groupByResourcesReservationPool.reserve(
           queryResourceId1,
           QUERY,
+          new DefaultGroupByQueryMetrics(),
           true,
           new GroupByStatsProvider.PerQueryStats()
       );
@@ -173,6 +174,7 @@ public class GroupByResourcesReservationPoolTest
         groupByResourcesReservationPool.reserve(
             queryResourceId2,
             QUERY,
+            new DefaultGroupByQueryMetrics(),
             true,
             new GroupByStatsProvider.PerQueryStats()
         );
@@ -209,6 +211,7 @@ public class GroupByResourcesReservationPoolTest
     groupByResourcesReservationPool.reserve(
         queryResourceId,
         QUERY,
+        new DefaultGroupByQueryMetrics(),
         true,
         new GroupByStatsProvider.PerQueryStats()
     );
@@ -218,6 +221,7 @@ public class GroupByResourcesReservationPoolTest
         () -> groupByResourcesReservationPool.reserve(
             queryResourceId,
             QUERY,
+            new DefaultGroupByQueryMetrics(),
             true,
             new GroupByStatsProvider.PerQueryStats()
         )
@@ -235,6 +239,7 @@ public class GroupByResourcesReservationPoolTest
     groupByResourcesReservationPool.reserve(
         queryResourceId,
         QUERY,
+        new DefaultGroupByQueryMetrics(),
         true,
         new GroupByStatsProvider.PerQueryStats()
     );
@@ -247,6 +252,7 @@ public class GroupByResourcesReservationPoolTest
     groupByResourcesReservationPool.reserve(
         queryResourceId,
         QUERY,
+        new DefaultGroupByQueryMetrics(),
         true,
         new GroupByStatsProvider.PerQueryStats()
     );

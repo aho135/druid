@@ -115,6 +115,7 @@ public class GroupByResourcesReservationPool
   public void reserve(
       QueryResourceId queryResourceId,
       GroupByQuery groupByQuery,
+      GroupByQueryMetrics groupByQueryMetrics,
       boolean willMergeRunner,
       GroupByStatsProvider.PerQueryStats perQueryStats
   )
@@ -152,7 +153,12 @@ public class GroupByResourcesReservationPool
     // allocated resources from it
     reference.compareAndSet(null, resources);
 
-    perQueryStats.mergeBufferAcquisitionTime(System.nanoTime() - startNs);
+    long mergeBufferAcquisitionTime = System.nanoTime() - startNs;
+    perQueryStats.mergeBufferAcquisitionTime(mergeBufferAcquisitionTime);
+    if (groupByQueryMetrics != null) {
+      // TODO: Remove null check after fixing unit tests
+      groupByQueryMetrics.reportMergeBufferAcquisitionTime(mergeBufferAcquisitionTime);
+    }
   }
 
   /**

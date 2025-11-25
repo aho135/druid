@@ -54,4 +54,29 @@ public interface GroupByQueryMetrics extends QueryMetrics<GroupByQuery>
    */
   @PublicApi
   void granularity(GroupByQuery query);
+
+  /**
+   * Reports the time spent waiting to acquire a merge buffer, in milliseconds.
+   * Only relevant for queries that require merge buffer allocation.
+   *
+   * @param timeNs time in nanoseconds spent waiting for merge buffer
+   */
+  @PublicApi
+  void reportMergeBufferAcquisitionTime(long timeNs);
+
+  /**
+   * Reports the number of bytes spilled to disk during query execution.
+   *
+   * @param bytes number of bytes spilled
+   */
+  @PublicApi
+  void reportSpilledBytes(long bytes);
+
+  /**
+   * Reports the size of the on-heap merge dictionary in bytes.
+   *
+   * @param bytes size of merge dictionary in bytes
+   */
+  @PublicApi
+  void reportMergeDictionarySize(long bytes);
 }

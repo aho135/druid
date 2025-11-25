@@ -124,7 +124,7 @@ public abstract class QueryToolChest<ResultType, QueryType extends Query<ResultT
   }
 
   /**
-   * Like {@link #mergeResults(QueryRunner)}, but with an additional flag that indicates the type of runner that is passeed to the call.
+   * Like {@link #mergeResults(QueryRunner)}, but with an additional flag that indicates the type of runner that is passed to the call.
    *
    * willMergeRunner specifies that the input runner to the mergeResults would be the one created by the corresponding
    * {@link QueryRunnerFactory#mergeRunners}.

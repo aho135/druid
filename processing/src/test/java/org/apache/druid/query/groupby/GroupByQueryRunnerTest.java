@@ -9758,7 +9758,7 @@ public class GroupByQueryRunnerTest extends InitializedNullHandlingTest
   }
 
   @Test
-  public void testGroupByWithExtractionDimFilterOptimazitionManyToOne()
+  public void testGroupByWithExtractionDimFilterOptimizationManyToOne()
   {
     // Granularity != ALL requires time-ordering.
     assumeTimeOrdered();
