@@ -25,6 +25,7 @@ import org.apache.druid.java.util.common.FileUtils;
 import org.apache.druid.java.util.common.ISE;
 import org.apache.druid.java.util.common.StringUtils;
 import org.apache.druid.java.util.common.logger.Logger;
+import org.apache.druid.query.groupby.GroupByQueryMetrics;
 import org.apache.druid.query.groupby.GroupByStatsProvider;
 
 import java.io.Closeable;
@@ -49,6 +50,7 @@ public class LimitedTemporaryStorage implements Closeable
   private static final Logger log = new Logger(LimitedTemporaryStorage.class);
 
   private final GroupByStatsProvider.PerQueryStats perQueryStatsContainer;
+  private final GroupByQueryMetrics groupByQueryMetrics;
 
   private final File storageDirectory;
   private final long maxBytesUsed;
@@ -63,12 +65,14 @@ public class LimitedTemporaryStorage implements Closeable
   public LimitedTemporaryStorage(
       File storageDirectory,
       long maxBytesUsed,
-      GroupByStatsProvider.PerQueryStats perQueryStatsContainer
+      GroupByStatsProvider.PerQueryStats perQueryStatsContainer,
+      GroupByQueryMetrics groupByQueryMetrics
   )
   {
     this.storageDirectory = storageDirectory;
     this.maxBytesUsed = maxBytesUsed;
     this.perQueryStatsContainer = perQueryStatsContainer;
+    this.groupByQueryMetrics = groupByQueryMetrics;
   }
 
   /**
@@ -144,6 +148,9 @@ public class LimitedTemporaryStorage implements Closeable
       closed = true;
 
       perQueryStatsContainer.spilledBytes(bytesUsed.get());
+      if (groupByQueryMetrics != null) {
+        groupByQueryMetrics.reportSpilledBytes(bytesUsed.get());
+      }
 
       bytesUsed.set(0);
 

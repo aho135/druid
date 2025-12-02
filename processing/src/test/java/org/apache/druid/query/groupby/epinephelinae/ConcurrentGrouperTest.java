@@ -36,6 +36,7 @@ import org.apache.druid.query.QueryTimeoutException;
 import org.apache.druid.query.aggregation.AggregatorFactory;
 import org.apache.druid.query.aggregation.CountAggregatorFactory;
 import org.apache.druid.query.dimension.DimensionSpec;
+import org.apache.druid.query.groupby.DefaultGroupByQueryMetrics;
 import org.apache.druid.query.groupby.GroupByStatsProvider;
 import org.apache.druid.query.groupby.epinephelinae.Grouper.BufferComparator;
 import org.apache.druid.query.groupby.epinephelinae.Grouper.Entry;
@@ -152,7 +153,8 @@ public class ConcurrentGrouperTest extends InitializedNullHandlingTest
     final LimitedTemporaryStorage temporaryStorage = new LimitedTemporaryStorage(
         temporaryFolder.newFolder(),
         1024 * 1024,
-        perQueryStats
+        perQueryStats,
+        new DefaultGroupByQueryMetrics()
     );
     final ListeningExecutorService service = MoreExecutors.listeningDecorator(exec);
     try {
@@ -244,7 +246,7 @@ public class ConcurrentGrouperTest extends InitializedNullHandlingTest
           1024,
           0.7f,
           1,
-          new LimitedTemporaryStorage(temporaryFolder.newFolder(), 1024 * 1024, perQueryStats),
+          new LimitedTemporaryStorage(temporaryFolder.newFolder(), 1024 * 1024, perQueryStats, new DefaultGroupByQueryMetrics()),
           new DefaultObjectMapper(),
           concurrencyHint,
           null,

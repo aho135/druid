@@ -212,6 +212,7 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
       final Sequence<ResultRow> mergedSequence = mergeGroupByResults(
           query,
           resource,
+          groupByQueryMetrics,
           runner,
           context,
           closer,
@@ -233,6 +234,7 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
   private Sequence<ResultRow> mergeGroupByResults(
       final GroupByQuery query,
       GroupByQueryResources resource,
+      GroupByQueryMetrics groupByQueryMetrics,
       QueryRunner<ResultRow> runner,
       ResponseContext context,
       Closer closer,
@@ -240,14 +242,15 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
   )
   {
     if (isNestedQueryPushDown(query)) {
-      return mergeResultsWithNestedQueryPushDown(query, resource, runner, context, perQueryStats);
+      return mergeResultsWithNestedQueryPushDown(query, resource, groupByQueryMetrics, runner, context, perQueryStats);
     }
-    return mergeGroupByResultsWithoutPushDown(query, resource, runner, context, closer, perQueryStats);
+    return mergeGroupByResultsWithoutPushDown(query, resource, groupByQueryMetrics, runner, context, closer, perQueryStats);
   }
 
   private Sequence<ResultRow> mergeGroupByResultsWithoutPushDown(
       GroupByQuery query,
       GroupByQueryResources resource,
+      GroupByQueryMetrics groupByQueryMetrics,
       QueryRunner<ResultRow> runner,
       ResponseContext context,
       Closer closer,
@@ -286,6 +289,7 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
       final Sequence<ResultRow> subqueryResult = mergeGroupByResults(
           subquery,
           resource,
+          groupByQueryMetrics,
           runner,
           context,
           closer,
@@ -298,9 +302,12 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
         return groupingEngine.processSubtotalsSpec(
             query,
             resource,
+            groupByQueryMetrics,
             groupingEngine.processSubqueryResult(
                 subquery,
-                query, resource,
+                query,
+                groupByQueryMetrics,
+                resource,
                 finalizingResults,
                 false,
                 perQueryStats
@@ -312,6 +319,7 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
             groupingEngine.processSubqueryResult(
                 subquery,
                 query,
+                groupByQueryMetrics,
                 resource,
                 finalizingResults,
                 false,
@@ -326,6 +334,7 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
         return groupingEngine.processSubtotalsSpec(
             query,
             resource,
+            groupByQueryMetrics,
             groupingEngine.mergeResults(runner, query.withSubtotalsSpec(null), context),
             perQueryStats
         );
@@ -338,6 +347,7 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
   private Sequence<ResultRow> mergeResultsWithNestedQueryPushDown(
       GroupByQuery query,
       GroupByQueryResources resource,
+      GroupByQueryMetrics groupByQueryMetrics,
       QueryRunner<ResultRow> runner,
       ResponseContext context,
       GroupByStatsProvider.PerQueryStats perQueryStats
@@ -350,6 +360,7 @@ public class GroupByQueryQueryToolChest extends QueryToolChest<ResultRow, GroupB
         groupingEngine.processSubqueryResult(
             query,
             rewrittenQuery,
+            groupByQueryMetrics,
             resource,
             finalizedResults,
             true,

@@ -33,6 +33,7 @@ import org.apache.druid.query.ResourceLimitExceededException;
 import org.apache.druid.query.dimension.DimensionSpec;
 import org.apache.druid.query.groupby.GroupByQuery;
 import org.apache.druid.query.groupby.GroupByQueryConfig;
+import org.apache.druid.query.groupby.GroupByQueryMetrics;
 import org.apache.druid.query.groupby.GroupByQueryResources;
 import org.apache.druid.query.groupby.GroupByStatsProvider;
 import org.apache.druid.query.groupby.ResultRow;
@@ -88,6 +89,7 @@ public class GroupByRowProcessor
   public static ResultSupplier process(
       final GroupByQuery query,
       final GroupByQuery subquery,
+      final GroupByQueryMetrics groupByQueryMetrics,
       final Sequence<ResultRow> rows,
       final GroupByQueryConfig config,
       final DruidProcessingConfig processingConfig,
@@ -109,7 +111,8 @@ public class GroupByRowProcessor
     final LimitedTemporaryStorage temporaryStorage = new LimitedTemporaryStorage(
         temporaryStorageDirectory,
         querySpecificConfig.getMaxOnDiskStorage().getBytes(),
-        perQueryStats
+        perQueryStats,
+        groupByQueryMetrics
     );
 
     closeOnExit.register(temporaryStorage);

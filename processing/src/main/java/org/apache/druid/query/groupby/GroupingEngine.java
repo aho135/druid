@@ -586,6 +586,7 @@ public class GroupingEngine
   public Sequence<ResultRow> processSubqueryResult(
       GroupByQuery subquery,
       GroupByQuery query,
+      GroupByQueryMetrics groupByQueryMetrics,
       GroupByQueryResources resource,
       Sequence<ResultRow> subqueryResult,
       boolean wasQueryPushedDown,
@@ -617,6 +618,7 @@ public class GroupingEngine
       resultSupplier = GroupByRowProcessor.process(
           queryToRun,
           wasQueryPushedDown ? queryToRun : subquery,
+          groupByQueryMetrics,
           subqueryResult,
           configSupplier.get(),
           processingConfig,
@@ -654,6 +656,7 @@ public class GroupingEngine
   public Sequence<ResultRow> processSubtotalsSpec(
       GroupByQuery query,
       GroupByQueryResources resource,
+      GroupByQueryMetrics groupByQueryMetrics,
       Sequence<ResultRow> queryResult,
       GroupByStatsProvider.PerQueryStats perQueryStats
   )
@@ -700,6 +703,7 @@ public class GroupingEngine
       resultSupplierOne = GroupByRowProcessor.process(
           baseSubtotalQuery,
           baseSubtotalQuery,
+          groupByQueryMetrics,
           queryResult,
           configSupplier.get(),
           processingConfig,
@@ -763,6 +767,7 @@ public class GroupingEngine
           Supplier<GroupByRowProcessor.ResultSupplier> resultSupplierTwo = () -> GroupByRowProcessor.process(
               baseSubtotalQuery,
               subtotalQuery,
+              groupByQueryMetrics,
               resultSupplierOneFinal.results(subTotalDimensionSpec),
               configSupplier.get(),
               processingConfig,

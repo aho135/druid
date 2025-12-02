@@ -57,6 +57,7 @@ import org.apache.druid.query.ResourceLimitExceededException;
 import org.apache.druid.query.context.ResponseContext;
 import org.apache.druid.query.groupby.GroupByQuery;
 import org.apache.druid.query.groupby.GroupByQueryConfig;
+import org.apache.druid.query.groupby.GroupByQueryMetrics;
 import org.apache.druid.query.groupby.GroupByQueryResources;
 import org.apache.druid.query.groupby.GroupByResourcesReservationPool;
 import org.apache.druid.query.groupby.GroupByStatsProvider;
@@ -192,7 +193,8 @@ public class GroupByMergingQueryRunner implements QueryRunner<ResultRow>
               final LimitedTemporaryStorage temporaryStorage = new LimitedTemporaryStorage(
                   temporaryStorageDirectory,
                   querySpecificConfig.getMaxOnDiskStorage().getBytes(),
-                  perQueryStats
+                  perQueryStats,
+                  (GroupByQueryMetrics) queryPlus.getQueryMetrics()
               );
 
               final ReferenceCountingResourceHolder<LimitedTemporaryStorage> temporaryStorageHolder =
