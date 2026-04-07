@@ -201,10 +201,20 @@ public class SupervisorResource
   {
     return asLeaderWithSupervisorManager(
         manager -> {
-          Set<String> authorizedSupervisorIds = filterAuthorizedSupervisorIds(
-              req,
-              manager,
-              manager.getSupervisorIds()
+          Function<String, Iterable<ResourceAction>> readRaGenerator = supervisorId -> {
+            Optional<SupervisorSpec> supervisorSpecOptional = manager.getSupervisorSpec(supervisorId);
+            return supervisorSpecOptional
+                .transform(spec -> SPEC_DATASOURCE_READ_RA_GENERATOR.apply(new VersionedSupervisorSpec(spec, null)))
+                .orNull();
+          };
+
+          Set<String> authorizedSupervisorIds = Sets.newHashSet(
+              AuthorizationUtils.filterAuthorizedResources(
+                  req,
+                  manager.getSupervisorIds(),
+                  readRaGenerator,
+                  authorizerMapper
+              )
           );
           final boolean includeFull = full != null;
           final boolean includeState = state != null && state;
