@@ -412,7 +412,7 @@ public class SupervisorManager implements SupervisorStatsProvider
    * @throws IllegalArgumentException if supervisor doesn't exist or if useEarliestOffset is true
    * @throws IllegalStateException if supervisor is not running or if either checkpointed or latest offsets is empty
    */
-  public Map<String, Object> resetSupervisorAndBackfill(String id)
+  public Map<String, Object> resetSupervisorAndBackfill(String id, @Nullable Integer backfillTaskCount)
   {
     Preconditions.checkState(started, "SupervisorManager not started");
     Preconditions.checkNotNull(id, "id");
@@ -475,7 +475,7 @@ public class SupervisorManager implements SupervisorStatsProvider
 
     Map<?, Object> backfillRange = calculateBackfillRange(startOffsets, latestOffsets);
 
-    streamSupervisor.submitBackfillTask(startOffsets, latestOffsets);
+    streamSupervisor.submitBackfillTask(startOffsets, latestOffsets, backfillTaskCount);
 
     log.info("Successfully reset supervisor[%s] to latest. Backfill range: %s", id, backfillRange);
 

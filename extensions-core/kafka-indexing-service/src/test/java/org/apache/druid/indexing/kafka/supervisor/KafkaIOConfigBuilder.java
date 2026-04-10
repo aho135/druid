@@ -93,7 +93,6 @@ public class KafkaIOConfigBuilder extends SupervisorIOConfigBuilder<KafkaIOConfi
         idleConfig,
         stopTaskCount,
         null,
-        null,
         null
     );
   }

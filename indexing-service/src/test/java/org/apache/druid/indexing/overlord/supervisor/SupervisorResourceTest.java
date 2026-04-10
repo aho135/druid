@@ -1343,11 +1343,11 @@ public class SupervisorResourceTest extends EasyMockSupport
     // Test 200 - Success
     EasyMock.expect(taskMaster.getSupervisorManager()).andReturn(Optional.of(supervisorManager)).times(1);
     EasyMock.expect(supervisorManager.resetSupervisorAndBackfill(
-        EasyMock.capture(id1)
+        EasyMock.capture(id1), null
     )).andReturn(expectedResult);
     replayAll();
 
-    Response response = supervisorResource.resetOffsetsAndBackfill("my-id");
+    Response response = supervisorResource.resetOffsetsAndBackfill("my-id", null);
 
     Assert.assertEquals(200, response.getStatus());
     Assert.assertEquals(expectedResult, response.getEntity());
@@ -1358,11 +1358,11 @@ public class SupervisorResourceTest extends EasyMockSupport
 
     // Test 400 - Supervisor not found
     EasyMock.expect(taskMaster.getSupervisorManager()).andReturn(Optional.of(supervisorManager)).times(1);
-    EasyMock.expect(supervisorManager.resetSupervisorAndBackfill("non-existent"))
+    EasyMock.expect(supervisorManager.resetSupervisorAndBackfill("non-existent", null))
             .andThrow(new IllegalArgumentException("Supervisor[non-existent] does not exist"));
     replayAll();
 
-    response = supervisorResource.resetOffsetsAndBackfill("non-existent");
+    response = supervisorResource.resetOffsetsAndBackfill("non-existent", null);
 
     Assert.assertEquals(400, response.getStatus());
     Assert.assertTrue(
@@ -1374,11 +1374,11 @@ public class SupervisorResourceTest extends EasyMockSupport
 
     // Test 400 - useConcurrentLocks not enabled
     EasyMock.expect(taskMaster.getSupervisorManager()).andReturn(Optional.of(supervisorManager)).times(1);
-    EasyMock.expect(supervisorManager.resetSupervisorAndBackfill("my-id"))
+    EasyMock.expect(supervisorManager.resetSupervisorAndBackfill("my-id", null))
             .andThrow(new IllegalArgumentException("Backfill tasks require 'useConcurrentLocks' to be set to true"));
     replayAll();
 
-    response = supervisorResource.resetOffsetsAndBackfill("my-id");
+    response = supervisorResource.resetOffsetsAndBackfill("my-id", null);
 
     Assert.assertEquals(400, response.getStatus());
     Assert.assertTrue(
@@ -1390,11 +1390,11 @@ public class SupervisorResourceTest extends EasyMockSupport
 
     // Test 400 - useEarliestOffset is enabled
     EasyMock.expect(taskMaster.getSupervisorManager()).andReturn(Optional.of(supervisorManager)).times(1);
-    EasyMock.expect(supervisorManager.resetSupervisorAndBackfill("my-id"))
+    EasyMock.expect(supervisorManager.resetSupervisorAndBackfill("my-id", null))
             .andThrow(new IllegalArgumentException("Reset with skipped offsets is not supported when useEarliestOffset is true"));
     replayAll();
 
-    response = supervisorResource.resetOffsetsAndBackfill("my-id");
+    response = supervisorResource.resetOffsetsAndBackfill("my-id", null);
 
     Assert.assertEquals(400, response.getStatus());
     Assert.assertTrue(
@@ -1406,11 +1406,11 @@ public class SupervisorResourceTest extends EasyMockSupport
 
     // Test 404 - Supervisor not running
     EasyMock.expect(taskMaster.getSupervisorManager()).andReturn(Optional.of(supervisorManager)).times(1);
-    EasyMock.expect(supervisorManager.resetSupervisorAndBackfill("my-id"))
+    EasyMock.expect(supervisorManager.resetSupervisorAndBackfill("my-id", null))
             .andThrow(new IllegalStateException("A running supervisor is required to query the latest offsets from the stream"));
     replayAll();
 
-    response = supervisorResource.resetOffsetsAndBackfill("my-id");
+    response = supervisorResource.resetOffsetsAndBackfill("my-id", null);
 
     Assert.assertEquals(404, response.getStatus());
     Assert.assertTrue(
@@ -1424,7 +1424,7 @@ public class SupervisorResourceTest extends EasyMockSupport
     EasyMock.expect(taskMaster.getSupervisorManager()).andReturn(Optional.absent());
     replayAll();
 
-    response = supervisorResource.resetOffsetsAndBackfill("my-id");
+    response = supervisorResource.resetOffsetsAndBackfill("my-id", null);
 
     Assert.assertEquals(503, response.getStatus());
     verifyAll();

@@ -78,8 +78,7 @@ public class KafkaSupervisorIOConfig extends SeekableStreamSupervisorIOConfig
       @JsonProperty("idleConfig") IdleConfig idleConfig,
       @JsonProperty("stopTaskCount") Integer stopTaskCount,
       @Nullable @JsonProperty("emitTimeLagMetrics") Boolean emitTimeLagMetrics,
-      @Nullable @JsonProperty("serverPriorityToReplicas") Map<Integer, Integer> serverPriorityToReplicas,
-      @Nullable @JsonProperty("backfillTaskCount") Integer backfillTaskCount
+      @Nullable @JsonProperty("serverPriorityToReplicas") Map<Integer, Integer> serverPriorityToReplicas
   )
   {
     super(
@@ -99,8 +98,7 @@ public class KafkaSupervisorIOConfig extends SeekableStreamSupervisorIOConfig
         lateMessageRejectionStartDateTime,
         idleConfig,
         stopTaskCount,
-        serverPriorityToReplicas,
-        backfillTaskCount
+        serverPriorityToReplicas
     );
 
     this.consumerProperties = Preconditions.checkNotNull(consumerProperties, "consumerProperties");

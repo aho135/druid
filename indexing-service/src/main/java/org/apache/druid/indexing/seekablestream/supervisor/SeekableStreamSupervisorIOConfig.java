@@ -54,7 +54,6 @@ public abstract class SeekableStreamSupervisorIOConfig
   @Nullable private final IdleConfig idleConfig;
   @Nullable private final Integer stopTaskCount;
   @Nullable private final Map<Integer, Integer> serverPriorityToReplicas;
-  @Nullable private final Integer backfillTaskCount;
 
   private final LagAggregator lagAggregator;
   private final boolean autoScalerEnabled;
@@ -76,8 +75,7 @@ public abstract class SeekableStreamSupervisorIOConfig
       DateTime lateMessageRejectionStartDateTime,
       @Nullable IdleConfig idleConfig,
       @Nullable Integer stopTaskCount,
-      @Nullable Map<Integer, Integer> serverPriorityToReplicas,
-      @Nullable Integer backfillTaskCount
+      @Nullable Map<Integer, Integer> serverPriorityToReplicas
   )
   {
     this.stream = Preconditions.checkNotNull(stream, "stream cannot be null");
@@ -156,9 +154,6 @@ public abstract class SeekableStreamSupervisorIOConfig
     } else {
       this.replicas = replicas != null ? replicas : 1;
     }
-
-    // Default backfillTaskCount to taskCount / 2
-    this.backfillTaskCount = backfillTaskCount != null ? backfillTaskCount : Math.max(1, this.taskCount / 2);
   }
 
   private static Duration defaultDuration(final Period period, final String theDefault)
@@ -262,12 +257,6 @@ public abstract class SeekableStreamSupervisorIOConfig
   public Optional<DateTime> getLateMessageRejectionStartDateTime()
   {
     return lateMessageRejectionStartDateTime;
-  }
-
-  @JsonProperty
-  public Integer getBackfillTaskCount()
-  {
-    return backfillTaskCount;
   }
 
   @Nullable

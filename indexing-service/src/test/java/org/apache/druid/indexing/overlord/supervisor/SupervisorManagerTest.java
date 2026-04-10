@@ -727,7 +727,8 @@ public class SupervisorManagerTest extends EasyMockSupport
     streamSupervisor.resetOffsets(EasyMock.anyObject(DataSourceMetadata.class));
     streamSupervisor.submitBackfillTask(
         EasyMock.anyObject(),
-        EasyMock.anyObject()
+        EasyMock.anyObject(),
+        null
     );
 
     replayAll();
@@ -735,7 +736,7 @@ public class SupervisorManagerTest extends EasyMockSupport
 
     manager.start();
 
-    Map<String, Object> result = manager.resetSupervisorAndBackfill("id1");
+    Map<String, Object> result = manager.resetSupervisorAndBackfill("id1", null);
 
     Assert.assertEquals("id1", result.get("id"));
     Assert.assertNotNull(result.get("backfillRange"));
@@ -759,7 +760,7 @@ public class SupervisorManagerTest extends EasyMockSupport
 
     IllegalArgumentException exception = Assert.assertThrows(
         IllegalArgumentException.class,
-        () -> manager.resetSupervisorAndBackfill("nonexistent")
+        () -> manager.resetSupervisorAndBackfill("nonexistent", null)
     );
     Assert.assertEquals("Supervisor[nonexistent] does not exist", exception.getMessage());
 
@@ -782,7 +783,7 @@ public class SupervisorManagerTest extends EasyMockSupport
 
     IllegalArgumentException exception = Assert.assertThrows(
         IllegalArgumentException.class,
-        () -> manager.resetSupervisorAndBackfill("id3")
+        () -> manager.resetSupervisorAndBackfill("id3", null)
     );
     Assert.assertEquals("Supervisor[id3] is not a SeekableStreamSupervisor", exception.getMessage());
 
@@ -817,7 +818,7 @@ public class SupervisorManagerTest extends EasyMockSupport
 
     IllegalArgumentException exception = Assert.assertThrows(
         IllegalArgumentException.class,
-        () -> manager.resetSupervisorAndBackfill("id1")
+        () -> manager.resetSupervisorAndBackfill("id1", null)
     );
     Assert.assertTrue(
         "Expected error message about useConcurrentLocks",
@@ -856,7 +857,7 @@ public class SupervisorManagerTest extends EasyMockSupport
 
     IllegalArgumentException exception = Assert.assertThrows(
         IllegalArgumentException.class,
-        () -> manager.resetSupervisorAndBackfill("id1")
+        () -> manager.resetSupervisorAndBackfill("id1", null)
     );
     Assert.assertTrue(
         "Expected error message about useEarliestOffset",
@@ -896,7 +897,7 @@ public class SupervisorManagerTest extends EasyMockSupport
 
     IllegalStateException exception = Assert.assertThrows(
         IllegalStateException.class,
-        () -> manager.resetSupervisorAndBackfill("id1")
+        () -> manager.resetSupervisorAndBackfill("id1", null)
     );
     Assert.assertTrue(
         "Expected error message about running supervisor",
@@ -940,7 +941,7 @@ public class SupervisorManagerTest extends EasyMockSupport
 
     IllegalStateException exception = Assert.assertThrows(
         IllegalStateException.class,
-        () -> manager.resetSupervisorAndBackfill("id1")
+        () -> manager.resetSupervisorAndBackfill("id1", null)
     );
     Assert.assertTrue(
         "Expected error message about failing to get latest offsets",
@@ -985,7 +986,7 @@ public class SupervisorManagerTest extends EasyMockSupport
 
     IllegalStateException exception = Assert.assertThrows(
         IllegalStateException.class,
-        () -> manager.resetSupervisorAndBackfill("id1")
+        () -> manager.resetSupervisorAndBackfill("id1", null)
     );
     Assert.assertTrue(
         "Expected error message about failing to get checkpointed offsets",

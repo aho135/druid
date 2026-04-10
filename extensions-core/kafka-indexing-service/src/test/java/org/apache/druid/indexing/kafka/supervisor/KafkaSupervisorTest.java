@@ -5401,8 +5401,7 @@ public class KafkaSupervisorTest extends EasyMockSupport
         Map.of(
             10, 2,
             20, 3
-        ),
-        null
+        )
     );
 
     Assert.assertEquals(5, (int) kafkaSupervisorIOConfig.getReplicas());
@@ -5687,8 +5686,7 @@ public class KafkaSupervisorTest extends EasyMockSupport
         idleConfig,
         null,
         true,
-        serverPriorityToReplicas,
-        null
+        serverPriorityToReplicas
     );
 
     KafkaIndexTaskClientFactory taskClientFactory = new KafkaIndexTaskClientFactory(
@@ -5783,7 +5781,6 @@ public class KafkaSupervisorTest extends EasyMockSupport
         null,
         null,
         false,
-        null,
         null
     );
 
@@ -5879,7 +5876,6 @@ public class KafkaSupervisorTest extends EasyMockSupport
         null,
         null,
         false,
-        null,
         null
     );
 
@@ -6235,7 +6231,7 @@ public class KafkaSupervisorTest extends EasyMockSupport
         new KafkaTopicPartition(false, topic, 2), 350L
     );
 
-    supervisor.submitBackfillTask(startOffsets, endOffsets);
+    supervisor.submitBackfillTask(startOffsets, endOffsets, null);
 
     List<Task> tasks = capturedTasks.getValues();
     Assert.assertEquals(2, tasks.size());
@@ -6304,7 +6300,7 @@ public class KafkaSupervisorTest extends EasyMockSupport
         partition1, 250L
     );
 
-    supervisor.submitBackfillTask(startOffsets, endOffsets);
+    supervisor.submitBackfillTask(startOffsets, endOffsets, null);
 
     // Verify task was submitted
     Task task = capturedTask.getValue();
@@ -6339,7 +6335,7 @@ public class KafkaSupervisorTest extends EasyMockSupport
     supervisor = getTestableSupervisor(2, 2, true, false, null, null, null);
 
     // Submit with empty offsets - should return early without submitting any tasks
-    supervisor.submitBackfillTask(ImmutableMap.of(), ImmutableMap.of());
+    supervisor.submitBackfillTask(ImmutableMap.of(), ImmutableMap.of(), null);
 
     // Verify no tasks were submitted (taskQueue.add should never be called)
     verifyAll();

@@ -601,9 +601,12 @@ public class SupervisorResource
   @Path("/{id}/resetOffsetsAndBackfill")
   @Produces(MediaType.APPLICATION_JSON)
   @ResourceFilters(SupervisorResourceFilter.class)
-  public Response resetOffsetsAndBackfill(@PathParam("id") final String id)
+  public Response resetOffsetsAndBackfill(
+      @PathParam("id") final String id,
+      @QueryParam("backfillTaskCount") @Nullable final Integer backfillTaskCount
+  )
   {
-    return handleResetAndBackfill(id);
+    return handleResetAndBackfill(id, backfillTaskCount);
   }
 
   @POST
@@ -637,12 +640,12 @@ public class SupervisorResource
     );
   }
 
-  private Response handleResetAndBackfill(final String id)
+  private Response handleResetAndBackfill(final String id, @Nullable final Integer backfillTaskCount)
   {
     return asLeaderWithSupervisorManager(
         manager -> {
           try {
-            Map<String, Object> result = manager.resetSupervisorAndBackfill(id);
+            Map<String, Object> result = manager.resetSupervisorAndBackfill(id, backfillTaskCount);
             return Response.ok(result).build();
           }
           catch (IllegalArgumentException e) {

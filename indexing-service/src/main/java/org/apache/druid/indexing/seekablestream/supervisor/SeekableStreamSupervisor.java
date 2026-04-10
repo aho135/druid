@@ -4743,10 +4743,12 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
    *
    * @param startOffsets Starting offsets (old checkpoint)
    * @param endOffsets Ending offsets (new reset target)
+   * @param backfillTaskCount Optional number of backfill tasks to create. If null, defaults to taskCount / 2
    */
   public void submitBackfillTask(
       Map<PartitionIdType, SequenceOffsetType> startOffsets,
-      Map<PartitionIdType, SequenceOffsetType> endOffsets
+      Map<PartitionIdType, SequenceOffsetType> endOffsets,
+      @Nullable Integer backfillTaskCount
   )
   {
     log.info("submitBackfillTask not implemented for supervisor[%s], skipping backfill submission", supervisorId);

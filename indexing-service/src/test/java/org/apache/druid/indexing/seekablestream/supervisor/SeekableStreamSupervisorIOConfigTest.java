@@ -69,7 +69,6 @@ public class SeekableStreamSupervisorIOConfigTest
         null,
         null,
         null,
-        null,
         null
     )
     {
@@ -122,7 +121,6 @@ public class SeekableStreamSupervisorIOConfigTest
         null,
         null,
         null,
-        null,
         null
     )
     {
@@ -145,7 +143,6 @@ public class SeekableStreamSupervisorIOConfigTest
         null,
         null,
         lagAggregator,
-        null,
         null,
         null,
         null,
@@ -181,7 +178,6 @@ public class SeekableStreamSupervisorIOConfigTest
             DateTimes.nowUtc(),
             null,
             null,
-            null,
             null
         )
         {
@@ -202,7 +198,6 @@ public class SeekableStreamSupervisorIOConfigTest
         DruidException.class,
         () -> new SeekableStreamSupervisorIOConfig(
             "stream",
-            null,
             null,
             null,
             null,
@@ -251,7 +246,6 @@ public class SeekableStreamSupervisorIOConfigTest
         null,
         null,
         null,
-        null,
         null
     )
     {
@@ -276,7 +270,6 @@ public class SeekableStreamSupervisorIOConfigTest
         null,
         null,
         3,
-        null,
         null
     )
     {
@@ -313,7 +306,6 @@ public class SeekableStreamSupervisorIOConfigTest
         null,
         null,
         1,
-        null,
         null
     )
     {
@@ -347,7 +339,6 @@ public class SeekableStreamSupervisorIOConfigTest
         null,
         null,
         1,
-        null,
         null
     )
     {
@@ -375,7 +366,6 @@ public class SeekableStreamSupervisorIOConfigTest
         null,
         autoScalerConfig,
         lagAggregator,
-        null,
         null,
         null,
         null,
@@ -466,8 +456,7 @@ public class SeekableStreamSupervisorIOConfigTest
         null,
         null,
         null,
-        serverPriorityToReplicas,
-        null
+        serverPriorityToReplicas
     )
     {
     };

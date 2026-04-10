@@ -99,8 +99,7 @@ public class KinesisSupervisorIOConfig extends SeekableStreamSupervisorIOConfig
         lateMessageRejectionStartDateTime,
         new IdleConfig(null, null),
         null,
-        serverPriorityToReplicas,
-        null
+        serverPriorityToReplicas
     );
 
     this.endpoint = endpoint != null

@@ -270,7 +270,8 @@ public class KafkaSupervisor extends SeekableStreamSupervisor<KafkaTopicPartitio
   @Override
   public void submitBackfillTask(
       Map<KafkaTopicPartition, Long> startOffsets,
-      Map<KafkaTopicPartition, Long> endOffsets
+      Map<KafkaTopicPartition, Long> endOffsets,
+      @Nullable Integer backfillTaskCount
   )
   {
     if (startOffsets == null || startOffsets.isEmpty() || endOffsets == null || endOffsets.isEmpty()) {
@@ -281,12 +282,13 @@ public class KafkaSupervisor extends SeekableStreamSupervisor<KafkaTopicPartitio
     try {
       String backfillSupervisorId = spec.getSpec().getDataSchema().getDataSource() + "_backfill";
 
-      // Get the backfillTaskCount from config
-      int backfillTaskCount = spec.getSpec().getIOConfig().getBackfillTaskCount();
+      // If backfillTaskCount is not provided, default to taskCount / 2
+      int taskCount = spec.getSpec().getIOConfig().getTaskCount();
+      int numBackfillTasks = backfillTaskCount != null ? backfillTaskCount : Math.max(1, taskCount / 2);
       List<KafkaTopicPartition> partitions = new ArrayList<>(endOffsets.keySet());
 
       // Determine actual number of tasks (can't have more tasks than partitions)
-      int numTasks = Math.min(backfillTaskCount, partitions.size());
+      int numTasks = Math.min(numBackfillTasks, partitions.size());
 
       log.info(
           "Submitting %d backfill task(s) with supervisorId[%s] for %d partition(s)",
