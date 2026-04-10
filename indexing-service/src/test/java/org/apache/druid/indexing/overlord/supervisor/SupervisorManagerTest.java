@@ -728,7 +728,7 @@ public class SupervisorManagerTest extends EasyMockSupport
     streamSupervisor.submitBackfillTask(
         EasyMock.anyObject(),
         EasyMock.anyObject(),
-        null
+        EasyMock.isNull()
     );
 
     replayAll();

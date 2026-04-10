@@ -1343,7 +1343,7 @@ public class SupervisorResourceTest extends EasyMockSupport
     // Test 200 - Success
     EasyMock.expect(taskMaster.getSupervisorManager()).andReturn(Optional.of(supervisorManager)).times(1);
     EasyMock.expect(supervisorManager.resetSupervisorAndBackfill(
-        EasyMock.capture(id1), null
+        EasyMock.capture(id1), EasyMock.isNull()
     )).andReturn(expectedResult);
     replayAll();
 
