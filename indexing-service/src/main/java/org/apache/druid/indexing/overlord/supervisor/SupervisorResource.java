@@ -592,16 +592,18 @@ public class SupervisorResource
   @Path("/{id}/reset")
   @Produces(MediaType.APPLICATION_JSON)
   @ResourceFilters(SupervisorResourceFilter.class)
-  public Response reset(
-      @PathParam("id") final String id,
-      @QueryParam("backfill") Boolean backfill
-  )
+  public Response reset(@PathParam("id") final String id)
   {
-    if (Boolean.TRUE.equals(backfill)) {
-      return handleResetAndBackfill(id);
-    } else {
-      return handleResetRequest(id, null);
-    }
+    return handleResetRequest(id, null);
+  }
+
+  @POST
+  @Path("/{id}/resetOffsetsAndBackfill")
+  @Produces(MediaType.APPLICATION_JSON)
+  @ResourceFilters(SupervisorResourceFilter.class)
+  public Response resetOffsetsAndBackfill(@PathParam("id") final String id)
+  {
+    return handleResetAndBackfill(id);
   }
 
   @POST

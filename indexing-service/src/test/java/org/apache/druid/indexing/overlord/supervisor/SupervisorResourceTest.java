@@ -1257,12 +1257,12 @@ public class SupervisorResourceTest extends EasyMockSupport
     )).andReturn(false);
     replayAll();
 
-    Response response = supervisorResource.reset("my-id", false);
+    Response response = supervisorResource.reset("my-id");
 
     Assert.assertEquals(200, response.getStatus());
     Assert.assertEquals(ImmutableMap.of("id", "my-id"), response.getEntity());
 
-    response = supervisorResource.reset("my-id-2", false);
+    response = supervisorResource.reset("my-id-2");
 
     Assert.assertEquals(404, response.getStatus());
     Assert.assertEquals("my-id", id1.getValue());
@@ -1347,7 +1347,7 @@ public class SupervisorResourceTest extends EasyMockSupport
     )).andReturn(expectedResult);
     replayAll();
 
-    Response response = supervisorResource.reset("my-id", true);
+    Response response = supervisorResource.resetOffsetsAndBackfill("my-id");
 
     Assert.assertEquals(200, response.getStatus());
     Assert.assertEquals(expectedResult, response.getEntity());
@@ -1362,7 +1362,7 @@ public class SupervisorResourceTest extends EasyMockSupport
             .andThrow(new IllegalArgumentException("Supervisor[non-existent] does not exist"));
     replayAll();
 
-    response = supervisorResource.reset("non-existent", true);
+    response = supervisorResource.resetOffsetsAndBackfill("non-existent");
 
     Assert.assertEquals(400, response.getStatus());
     Assert.assertTrue(
@@ -1378,7 +1378,7 @@ public class SupervisorResourceTest extends EasyMockSupport
             .andThrow(new IllegalArgumentException("Backfill tasks require 'useConcurrentLocks' to be set to true"));
     replayAll();
 
-    response = supervisorResource.reset("my-id", true);
+    response = supervisorResource.resetOffsetsAndBackfill("my-id");
 
     Assert.assertEquals(400, response.getStatus());
     Assert.assertTrue(
@@ -1394,7 +1394,7 @@ public class SupervisorResourceTest extends EasyMockSupport
             .andThrow(new IllegalArgumentException("Reset with skipped offsets is not supported when useEarliestOffset is true"));
     replayAll();
 
-    response = supervisorResource.reset("my-id", true);
+    response = supervisorResource.resetOffsetsAndBackfill("my-id");
 
     Assert.assertEquals(400, response.getStatus());
     Assert.assertTrue(
@@ -1410,7 +1410,7 @@ public class SupervisorResourceTest extends EasyMockSupport
             .andThrow(new IllegalStateException("A running supervisor is required to query the latest offsets from the stream"));
     replayAll();
 
-    response = supervisorResource.reset("my-id", true);
+    response = supervisorResource.resetOffsetsAndBackfill("my-id");
 
     Assert.assertEquals(404, response.getStatus());
     Assert.assertTrue(
@@ -1424,7 +1424,7 @@ public class SupervisorResourceTest extends EasyMockSupport
     EasyMock.expect(taskMaster.getSupervisorManager()).andReturn(Optional.absent());
     replayAll();
 
-    response = supervisorResource.reset("my-id", true);
+    response = supervisorResource.resetOffsetsAndBackfill("my-id");
 
     Assert.assertEquals(503, response.getStatus());
     verifyAll();
