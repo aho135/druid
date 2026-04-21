@@ -202,10 +202,10 @@ public class SupervisorResource
     return asLeaderWithSupervisorManager(
         manager -> {
           Set<String> authorizedSupervisorIds = filterAuthorizedSupervisorIds(
-                  req,
-                  manager,
-                  manager.getSupervisorIds(),
-                  AuthorizationUtils.DATASOURCE_READ_RA_GENERATOR
+              req,
+              manager,
+              manager.getSupervisorIds(),
+              AuthorizationUtils.DATASOURCE_READ_RA_GENERATOR
           );
           final boolean includeFull = full != null;
           final boolean includeState = state != null && state;
