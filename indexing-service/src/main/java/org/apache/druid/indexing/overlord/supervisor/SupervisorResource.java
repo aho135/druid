@@ -201,20 +201,11 @@ public class SupervisorResource
   {
     return asLeaderWithSupervisorManager(
         manager -> {
-          Function<String, Iterable<ResourceAction>> readRaGenerator = supervisorId -> {
-            Optional<SupervisorSpec> supervisorSpecOptional = manager.getSupervisorSpec(supervisorId);
-            return supervisorSpecOptional
-                .transform(spec -> SPEC_DATASOURCE_READ_RA_GENERATOR.apply(new VersionedSupervisorSpec(spec, null)))
-                .orNull();
-          };
-
-          Set<String> authorizedSupervisorIds = Sets.newHashSet(
-              AuthorizationUtils.filterAuthorizedResources(
+          Set<String> authorizedSupervisorIds = filterAuthorizedSupervisorIds(
                   req,
+                  manager,
                   manager.getSupervisorIds(),
-                  readRaGenerator,
-                  authorizerMapper
-              )
+                  AuthorizationUtils.DATASOURCE_READ_RA_GENERATOR
           );
           final boolean includeFull = full != null;
           final boolean includeState = state != null && state;
@@ -509,7 +500,8 @@ public class SupervisorResource
           Set<String> authorizedSupervisorIds = filterAuthorizedSupervisorIds(
               req,
               manager,
-              manager.getSupervisorIds()
+              manager.getSupervisorIds(),
+              AuthorizationUtils.DATASOURCE_WRITE_RA_GENERATOR
           );
 
           for (final String supervisorId : authorizedSupervisorIds) {
@@ -652,7 +644,8 @@ public class SupervisorResource
   private Set<String> filterAuthorizedSupervisorIds(
       final HttpServletRequest req,
       SupervisorManager manager,
-      Collection<String> supervisorIds
+      Collection<String> supervisorIds,
+      Function<String, ResourceAction> authorizationFn
   )
   {
     Function<String, Iterable<ResourceAction>> raGenerator = supervisorId -> {
@@ -660,7 +653,7 @@ public class SupervisorResource
       if (supervisorSpecOptional.isPresent()) {
         return Iterables.transform(
             supervisorSpecOptional.get().getDataSources(),
-            AuthorizationUtils.DATASOURCE_WRITE_RA_GENERATOR
+            authorizationFn
         );
       } else {
         return null;
@@ -710,7 +703,8 @@ public class SupervisorResource
           Set<String> authorizedSupervisorIds = filterAuthorizedSupervisorIds(
               req,
               manager,
-              manager.getSupervisorIds()
+              manager.getSupervisorIds(),
+              AuthorizationUtils.DATASOURCE_WRITE_RA_GENERATOR
           );
 
           for (final String supervisorId : authorizedSupervisorIds) {
