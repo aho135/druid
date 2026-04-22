@@ -4218,6 +4218,16 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
     // check that there is a current task group for each group of partitions in [partitionGroups]
     for (Integer groupId : partitionGroups.keySet()) {
       if (!activelyReadingTaskGroups.containsKey(groupId)) {
+        // In bounded mode, check if this task group already completed successfully
+        if (ioConfig.isBounded() && hasTaskGroupReachedBoundedEnd(groupId)) {
+          log.info(
+              "Skipping task group[%d] creation - already reached bounded end offsets for partitions[%s].",
+              groupId,
+              partitionGroups.get(groupId)
+          );
+          continue;
+        }
+
         log.info("Creating new taskGroup[%d] for partitions[%s].", groupId, partitionGroups.get(groupId));
         final DateTime minimumMessageTime;
         if (ioConfig.getLateMessageRejectionStartDateTime().isPresent()) {
@@ -4309,6 +4319,15 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
           taskGroup.startingSequences.isEmpty() ||
           taskGroup.startingSequences.values().stream().allMatch(x -> x == null || isEndOfShard(x))) {
         log.debug("Nothing to read in any partition for taskGroup[%d], skipping task creation.", groupId);
+        continue;
+      }
+
+      // In bounded mode, check if this task group already completed successfully before creating replicas
+      if (ioConfig.isBounded() && hasTaskGroupReachedBoundedEnd(groupId)) {
+        log.info(
+            "Skipping replica creation for taskGroup[%d] - already reached bounded end offsets.",
+            groupId
+        );
         continue;
       }
 
