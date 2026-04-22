@@ -448,6 +448,28 @@ Use this action to recover from a stopped state due to missing offsets.
 
 For information on how to reset a supervisor by API, see [Supervisors: Reset a supervisor](../api-reference/supervisor-api.md#reset-a-supervisor).
 
+### Reset offsets and backfill
+
+**Reset offsets and backfill** resets a supervisor to the latest available position while ensuring no data is lost by submitting supervised backfill tasks to process the skipped data range. This operation performs the following steps:
+1. Retrieves the current stored offsets and latest offsets from the stream
+2. Resets the supervisor to start reading from the latest offsets
+3. Creates a temporary BackfillSupervisor to coordinate backfill tasks
+4. Submits backfill tasks to process data in the range between the stored offsets and latest offsets
+
+The backfill tasks run concurrently with the supervisor's normal streaming tasks. By default, the number of backfill tasks created is `taskCount / 2` (with a minimum of 1), but this can be customized via the API. This operation requires the supervisor to have `useConcurrentLocks` enabled and `useEarliestOffset` set to `false`.
+
+The BackfillSupervisor (with ID `{dataSource}_backfill`) coordinates the backfill tasks with automatic retry support. Key features:
+
+- **Offset metadata tracking**: Backfill tasks write their committed offsets to the metadata store when publishing segments
+- **Automatic retry**: Failed tasks are automatically retried up to 3 times
+- **Offset-aware retry**: On retry, the supervisor queries the metadata store for the last committed offset per partition, ensuring tasks resume from where they left off rather than starting over
+- **No data duplication**: If a task partially completes (publishes some segments then fails), the retry continues from the last committed offset
+- **Restart resilience**: Survives Overlord restarts by persisting to metadata store and reconstructing task tracking from TaskStorage
+
+This ensures reliable backfill execution even if individual tasks fail or the Overlord restarts. Once all tasks complete, the BackfillSupervisor stops monitoring but remains registered. You can manually terminate it if desired using the supervisor terminate endpoint.
+
+For information on how to reset offsets and backfill by API, see [Supervisors: Reset offsets and backfill for a supervisor](../api-reference/supervisor-api.md#reset-offsets-and-backfill-for-a-supervisor).
+
 ### Terminate
 
 **Terminate** stops a supervisor and its indexing tasks, triggering the publishing of their segments. When you terminate a supervisor, Druid places a tombstone marker in the metadata store to prevent reloading on restart.

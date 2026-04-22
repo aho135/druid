@@ -27,7 +27,7 @@ DRUID_SINGLE_NODE_CONF=micro-quickstart
 
 druid_emitter_logging_logLevel=debug
 
-druid_extensions_loadList=["druid-histogram", "druid-datasketches", "druid-lookups-cached-global", "postgresql-metadata-storage"]
+druid_extensions_loadList=["druid-histogram", "druid-datasketches", "druid-lookups-cached-global", "postgresql-metadata-storage", "druid-kafka-indexing-service", "druid-basic-security"]
 
 druid_zk_service_host=zookeeper
 
@@ -49,3 +49,32 @@ druid_processing_numThreads=2
 druid_processing_numMergeBuffers=2
 
 DRUID_LOG4J=<?xml version="1.0" encoding="UTF-8" ?><Configuration status="WARN"><Appenders><Console name="Console" target="SYSTEM_OUT"><PatternLayout pattern="%d{ISO8601} %p [%t] %c - %m%n"/></Console></Appenders><Loggers><Root level="info"><AppenderRef ref="Console"/></Root><Logger name="org.apache.druid.jetty.RequestLog" additivity="false" level="DEBUG"><AppenderRef ref="Console"/></Logger></Loggers></Configuration>
+
+druid_auth_authenticatorChain=["basic","anonymous"]
+
+  # Basic authenticator for internal user
+  druid_auth_authenticator_basic_type=basic
+  druid_auth_authenticator_basic_initialAdminPassword=password
+  druid_auth_authenticator_basic_initialInternalClientPassword=password
+  druid_auth_authenticator_basic_credentialsValidator_type=metadata
+  druid_auth_authenticator_basic_authorizerName=BasicAuthorizer
+
+  # Anonymous authenticator for external users
+  druid_auth_authenticator_anonymous_type=anonymous
+  druid_auth_authenticator_anonymous_identity=defaultUser
+  druid_auth_authenticator_anonymous_authorizerName=ReadOnlyAuthorizer
+
+  # Escalator with Basic auth for internal communications
+  druid_escalator_type=basic
+  druid_escalator_internalClientUsername=druid_system
+  druid_escalator_internalClientPassword=password
+  druid_escalator_authorizerName=BasicAuthorizer
+
+  # Both authorizers
+  druid_auth_authorizers=["BasicAuthorizer","ReadOnlyAuthorizer"]
+
+  # BasicAuthorizer configuration
+  druid_auth_authorizer_BasicAuthorizer_type=basic
+
+  # ReadOnlyAuthorizer configuration
+  druid_auth_authorizer_ReadOnlyAuthorizer_type=readOnly

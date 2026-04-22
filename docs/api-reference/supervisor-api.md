@@ -3534,6 +3534,166 @@ when the supervisor's tasks restart, they resume reading from `{"0": 100, "1": 1
   ```
 </details>
 
+### Reset offsets and backfill for a supervisor
+
+The supervisor must be running for this endpoint to be available.
+
+Resets offsets for a supervisor and submits supervised backfill tasks to reprocess data that would be skipped by the reset.
+
+This endpoint performs the following operations:
+1. Retrieves the current stored offsets and latest offsets from the stream
+2. Resets the supervisor to start reading from the latest offsets
+3. Creates a temporary BackfillSupervisor to coordinate backfill tasks
+4. Submits backfill tasks to process data in the range between the stored offsets and latest offsets
+
+This endpoint is useful when you want to reset a supervisor to the latest position while ensuring no data is lost during the transition. The backfill tasks run concurrently with the supervisor's normal streaming tasks.
+
+**Backfill Task Supervision and Retry:**
+Backfill tasks are supervised by a BackfillSupervisor (with ID `{dataSource}_backfill`). The supervisor provides:
+- **Offset metadata tracking**: Tasks write start and end offsets to the metadata store during segment publish
+- **Automatic retry on failure**: Failed tasks are automatically retried (up to 3 attempts) from the last committed offset
+- **Offset-aware retry**: On retry, the supervisor queries the metadata store to determine what data was successfully ingested before failure, ensuring no data duplication
+- **Checkpoint coordination**: Tasks can checkpoint their progress during execution
+- **Restart resilience**: The BackfillSupervisor is persisted to the metadata store and automatically reconstructs its task tracking state from TaskStorage on Overlord restart
+
+If a backfill task partially completes (publishes some segments then fails), the retry will start from the last committed offset for each partition, not from the original start offset. This prevents reprocessing data that was already successfully ingested.
+
+**Overlord Restart Handling:**
+If the Overlord restarts while backfill tasks are running:
+1. The BackfillSupervisor is recreated from the metadata store on startup
+2. Active backfill tasks are discovered from TaskStorage and re-registered for monitoring
+3. Retry capability is fully restored (retry counts reset to 0)
+4. Tasks continue running and will be retried on failure
+
+**Manual Cleanup:**
+Once all backfill tasks complete, the BackfillSupervisor stops monitoring but remains registered. You can manually terminate it using:
+```
+POST /druid/indexer/v1/supervisor/{dataSource}_backfill/terminate
+```
+
+**Requirements:**
+- The supervisor must have `useConcurrentLocks` enabled in its tuning config
+- The supervisor must not have `useEarliestOffset` set to `true`
+- The supervisor must be in a running state
+
+#### URL
+
+`POST` `/druid/indexer/v1/supervisor/{supervisorId}/resetOffsetsAndBackfill`
+
+#### Query Parameters
+
+| Parameter | Type | Description | Required |
+|-----------|------|-------------|----------|
+| `backfillTaskCount` | Integer | Number of backfill tasks to create. If not specified, defaults to `taskCount / 2` (minimum of 1). Cannot exceed the number of partitions. | No |
+
+#### Responses
+
+<Tabs>
+
+<TabItem value="57" label="200 SUCCESS">
+
+
+*Successfully reset supervisor and submitted backfill tasks*
+
+Returns a JSON object containing:
+- `id`: The ID of the reset supervisor
+- `backfillId`: The ID of the temporary BackfillSupervisor that coordinates the backfill tasks
+- `backfillRange`: Map of partition IDs to their offset ranges (start and end offsets)
+
+</TabItem>
+<TabItem value="58" label="400 BAD REQUEST">
+
+
+*Invalid configuration (e.g., useConcurrentLocks not enabled, useEarliestOffset is true)*
+
+</TabItem>
+<TabItem value="59" label="404 NOT FOUND">
+
+
+*Invalid supervisor ID or supervisor not running*
+
+</TabItem>
+</Tabs>
+
+---
+
+#### Sample request
+
+The following examples show how to reset a Kafka supervisor with the name `social_media` and submit a backfill task.
+
+**Example 1: Using default backfill task count**
+
+<Tabs>
+
+<TabItem value="60" label="cURL">
+
+
+```shell
+curl --request POST "http://ROUTER_IP:ROUTER_PORT/druid/indexer/v1/supervisor/social_media/resetOffsetsAndBackfill"
+```
+
+</TabItem>
+<TabItem value="61" label="HTTP">
+
+
+```HTTP
+POST /druid/indexer/v1/supervisor/social_media/resetOffsetsAndBackfill HTTP/1.1
+Host: http://ROUTER_IP:ROUTER_PORT
+```
+
+</TabItem>
+</Tabs>
+
+**Example 2: Specifying a custom backfill task count**
+
+<Tabs>
+
+<TabItem value="62" label="cURL">
+
+
+```shell
+curl --request POST "http://ROUTER_IP:ROUTER_PORT/druid/indexer/v1/supervisor/social_media/resetOffsetsAndBackfill?backfillTaskCount=4"
+```
+
+</TabItem>
+<TabItem value="63" label="HTTP">
+
+
+```HTTP
+POST /druid/indexer/v1/supervisor/social_media/resetOffsetsAndBackfill?backfillTaskCount=4 HTTP/1.1
+Host: http://ROUTER_IP:ROUTER_PORT
+```
+
+</TabItem>
+</Tabs>
+
+#### Sample response
+
+<details>
+  <summary>View the response</summary>
+
+  ```json
+{
+    "id": "social_media",
+    "backfillId": "social_media_backfill",
+    "backfillRange": {
+        "0": {
+            "start": 1000,
+            "end": 2000
+        },
+        "1": {
+            "start": 1500,
+            "end": 2500
+        },
+        "2": {
+            "start": 2000,
+            "end": 3000
+        }
+    }
+}
+  ```
+</details>
+
 ### Terminate a supervisor
 
 Terminates a supervisor and its associated indexing tasks, triggering the publishing of their segments. When you terminate a supervisor, Druid places a tombstone marker in the metadata store to prevent reloading on restart.

@@ -1347,6 +1347,11 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
       try {
         recordSupplier = setupRecordSupplier();
 
+        // Initialize bounded partitions BEFORE first run
+        if (ioConfig.isBounded()) {
+          initializeBoundedPartitionGroups();
+        }
+
         exec.submit(
             () -> {
               try {
@@ -2983,8 +2988,59 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
     }
   }
 
+  /**
+   * Initialize partitionGroups from bounded config instead of from stream discovery.
+   * This prevents the supervisor from trying to recreate tasks as they complete.
+   * Only used in bounded mode during supervisor startup.
+   */
+  private void initializeBoundedPartitionGroups()
+  {
+    if (!ioConfig.isBounded()) {
+      return;
+    }
+
+    BoundedStreamConfig boundedConfig = ioConfig.getBoundedStreamConfig();
+    Map<?, ?> configuredPartitions = boundedConfig.getStartSequenceNumbers();
+
+    log.info(
+        "Bounded mode: initializing supervisor[%s] with [%d] configured partitions",
+        supervisorId,
+        configuredPartitions.size()
+    );
+
+    for (Object partition : configuredPartitions.keySet()) {
+      PartitionIdType typedPartition = (PartitionIdType) partition;
+      int taskGroupId = getTaskGroupIdForPartition(typedPartition);
+
+      partitionGroups.computeIfAbsent(taskGroupId, k -> new HashSet<>()).add(typedPartition);
+      partitionIds.add(typedPartition);
+      partitionOffsets.put(typedPartition, getNotSetMarker());
+
+      log.debug(
+          "Bounded mode: initialized partition[%s] in taskGroup[%d]",
+          typedPartition,
+          taskGroupId
+      );
+    }
+
+    assignRecordSupplierToPartitionIds();
+
+    log.info(
+        "Bounded mode: initialized [%d] partitions in [%d] task groups",
+        configuredPartitions.size(),
+        partitionGroups.size()
+    );
+  }
+
   private boolean updatePartitionDataFromStream()
   {
+    // In bounded mode, partitionGroups is already initialized from config
+    // Skip partition discovery to prevent recreating tasks
+    if (ioConfig.isBounded()) {
+      log.debug("Bounded mode: skipping partition discovery from stream");
+      return true;
+    }
+
     List<PartitionIdType> previousPartitionIds = new ArrayList<>(partitionIds);
     Set<PartitionIdType> partitionIdsFromSupplier;
     recordSupplierLock.lock();
