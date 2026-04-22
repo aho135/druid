@@ -798,4 +798,70 @@ public class KafkaSupervisor extends SeekableStreamSupervisor<KafkaTopicPartitio
     // Kafka offsets are longs, simple numeric comparison
     return current >= target;
   }
+
+  @Override
+  protected void createBoundedBackfillTask(
+      String taskId,
+      Map<Integer, Long> startOffsets,
+      Map<Integer, Long> endOffsets,
+      int taskIndex
+  ) throws JsonProcessingException
+  {
+    log.info("Creating bounded backfill task[%s] with %d partitions", taskId, startOffsets.size());
+
+    // Create start and end sequence numbers
+    SeekableStreamStartSequenceNumbers<Integer, Long> startSequenceNumbers =
+        new SeekableStreamStartSequenceNumbers<>(
+            ioConfig.getStream(),
+            startOffsets,
+            Collections.emptySet() // no exclusive partitions for backfill start
+        );
+
+    SeekableStreamEndSequenceNumbers<Integer, Long> endSequenceNumbers =
+        new SeekableStreamEndSequenceNumbers<>(
+            ioConfig.getStream(),
+            endOffsets
+        );
+
+    // Create task IOConfig with bounded sequences
+    KafkaIndexTaskIOConfig taskIoConfig = new KafkaIndexTaskIOConfig(
+        taskIndex,
+        "backfill_" + dataSource + "_" + taskIndex,
+        startSequenceNumbers,
+        endSequenceNumbers,
+        ioConfig.getConsumerProperties(),
+        ioConfig.getPollTimeout(),
+        true, // useTransaction
+        null, // minimumMessageTime
+        null, // maximumMessageTime
+        ioConfig.getInputFormat(),
+        null  // configOverrides
+    );
+
+    // Create the task
+    KafkaIndexTask task = new KafkaIndexTask(
+        taskId,
+        new TaskResource("backfill_" + dataSource, 1),
+        spec.getDataSchema(),
+        (KafkaIndexTaskTuningConfig) taskTuningConfig,
+        taskIoConfig,
+        spec.getContext(),
+        null // serverPriority
+    );
+
+    // Submit the task
+    Optional<TaskQueue> taskQueue = taskMaster.getTaskQueue();
+    if (taskQueue.isPresent()) {
+      try {
+        taskQueue.get().add(task);
+        log.info("Successfully submitted bounded backfill task[%s]", taskId);
+      }
+      catch (DruidException e) {
+        log.error(e, "Failed to submit bounded backfill task[%s]", taskId);
+        throw e;
+      }
+    } else {
+      throw new ISE("Task queue not available");
+    }
+  }
 }

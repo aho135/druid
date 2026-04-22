@@ -42,6 +42,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.druid.common.guava.FutureUtils;
+import org.apache.druid.common.utils.IdUtils;
 import org.apache.druid.data.input.impl.ByteEntity;
 import org.apache.druid.error.DruidException;
 import org.apache.druid.error.InvalidInput;
@@ -5057,8 +5058,81 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
       @Nullable Integer backfillTaskCount
   )
   {
-    log.info("submitBackfillTask not implemented for supervisor[%s], skipping backfill submission", supervisorId);
+    log.info("Starting bounded backfill for supervisor[%s] with %d partitions", supervisorId, startOffsets.size());
+
+    int taskCount = backfillTaskCount != null ? backfillTaskCount : ioConfig.getTaskCount();
+
+    try {
+      // Create bounded tasks directly without using a separate supervisor
+      // Group partitions by task
+      List<Set<PartitionIdType>> partitionAssignments = assignPartitionsToTasks(
+          startOffsets.keySet(),
+          taskCount
+      );
+
+      log.info("Creating %d bounded backfill tasks for supervisor[%s]", partitionAssignments.size(), supervisorId);
+
+      for (int i = 0; i < partitionAssignments.size(); i++) {
+        Set<PartitionIdType> taskPartitions = partitionAssignments.get(i);
+
+        // Build start and end partition maps for this task
+        Map<PartitionIdType, SequenceOffsetType> taskStartOffsets = new HashMap<>();
+        Map<PartitionIdType, SequenceOffsetType> taskEndOffsets = new HashMap<>();
+
+        for (PartitionIdType partition : taskPartitions) {
+          taskStartOffsets.put(partition, startOffsets.get(partition));
+          taskEndOffsets.put(partition, endOffsets.get(partition));
+        }
+
+        // Create bounded task
+        String taskId = IdUtils.getRandomIdWithPrefix("backfill_" + dataSource);
+        createBoundedBackfillTask(taskId, taskStartOffsets, taskEndOffsets, i);
+      }
+
+      log.info("Successfully submitted %d bounded backfill tasks for supervisor[%s]",
+               partitionAssignments.size(), supervisorId);
+    }
+    catch (Exception e) {
+      log.error(e, "Failed to submit bounded backfill tasks for supervisor[%s]", supervisorId);
+      throw new RuntimeException("Failed to submit backfill tasks", e);
+    }
   }
+
+  /**
+   * Assign partitions to tasks for backfill.
+   */
+  private List<Set<PartitionIdType>> assignPartitionsToTasks(
+      Set<PartitionIdType> partitions,
+      int taskCount
+  )
+  {
+    List<PartitionIdType> partitionList = new ArrayList<>(partitions);
+    List<Set<PartitionIdType>> assignments = new ArrayList<>();
+
+    for (int i = 0; i < taskCount; i++) {
+      assignments.add(new HashSet<>());
+    }
+
+    // Round-robin assignment
+    for (int i = 0; i < partitionList.size(); i++) {
+      assignments.get(i % taskCount).add(partitionList.get(i));
+    }
+
+    // Remove empty assignments
+    assignments.removeIf(Set::isEmpty);
+
+    return assignments;
+  }
+
+  /**
+   * Create and submit a single bounded backfill task.
+   */
+  protected abstract void createBoundedBackfillTask(
+      String taskId,
+      Map<PartitionIdType, SequenceOffsetType> startOffsets,
+      Map<PartitionIdType, SequenceOffsetType> endOffsets,
+      int taskIndex
+  ) throws JsonProcessingException;
 
   /**
    * creates a specific instance of kafka/kinesis datasource metadata. Only used for reset.

@@ -496,4 +496,77 @@ public class KinesisSupervisor extends SeekableStreamSupervisor<String, String, 
     // Kinesis sequence numbers are strings but lexicographically comparable
     return current.compareTo(target) >= 0;
   }
+
+  @Override
+  protected void createBoundedBackfillTask(
+      String taskId,
+      Map<String, String> startOffsets,
+      Map<String, String> endOffsets,
+      int taskIndex
+  ) throws JsonProcessingException
+  {
+    log.info("Creating bounded backfill task[%s] with %d shards", taskId, startOffsets.size());
+
+    KinesisSupervisorIOConfig kinesisIoConfig = (KinesisSupervisorIOConfig) ioConfig;
+
+    // Create start and end sequence numbers
+    SeekableStreamStartSequenceNumbers<String, String> startSequenceNumbers =
+        new SeekableStreamStartSequenceNumbers<>(
+            kinesisIoConfig.getStream(),
+            startOffsets,
+            Collections.emptySet() // no exclusive partitions for backfill start
+        );
+
+    SeekableStreamEndSequenceNumbers<String, String> endSequenceNumbers =
+        new SeekableStreamEndSequenceNumbers<>(
+            kinesisIoConfig.getStream(),
+            endOffsets
+        );
+
+    // Create task IOConfig with bounded sequences
+    KinesisIndexTaskIOConfig taskIoConfig = new KinesisIndexTaskIOConfig(
+        taskIndex,
+        "backfill_" + dataSource + "_" + taskIndex,
+        startSequenceNumbers,
+        endSequenceNumbers,
+        true, // useTransaction
+        null, // minimumMessageTime
+        null, // maximumMessageTime
+        kinesisIoConfig.getInputFormat(),
+        kinesisIoConfig.getEndpoint(),
+        kinesisIoConfig.getFetchDelayMillis(),
+        kinesisIoConfig.getAwsAssumedRoleArn(),
+        kinesisIoConfig.getAwsExternalId(),
+        kinesisIoConfig.getTaskDuration().getStandardMinutes()
+    );
+
+    // Create the task
+    KinesisIndexTask task = new KinesisIndexTask(
+        taskId,
+        dataSource,
+        new TaskResource("backfill_" + dataSource, 1),
+        spec.getDataSchema(),
+        (KinesisIndexTaskTuningConfig) taskTuningConfig,
+        taskIoConfig,
+        spec.getContext(),
+        spec.getSpec().getTuningConfig().isUseListShards(),
+        awsCredentialsConfig,
+        null // serverPriority
+    );
+
+    // Submit the task
+    Optional<TaskQueue> taskQueue = taskMaster.getTaskQueue();
+    if (taskQueue.isPresent()) {
+      try {
+        taskQueue.get().add(task);
+        log.info("Successfully submitted bounded backfill task[%s]", taskId);
+      }
+      catch (DruidException e) {
+        log.error(e, "Failed to submit bounded backfill task[%s]", taskId);
+        throw e;
+      }
+    } else {
+      throw new ISE("Task queue not available");
+    }
+  }
 }
