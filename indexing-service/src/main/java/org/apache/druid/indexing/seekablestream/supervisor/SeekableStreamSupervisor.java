@@ -988,6 +988,9 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
   private long lastActiveTimeMillis;
   private final IdleConfig idleConfig;
 
+  // Flag to track if all bounded tasks have completed successfully
+  private volatile boolean boundedTasksCompleted = false;
+
   public SeekableStreamSupervisor(
       final String supervisorTag,
       final TaskStorage taskStorage,
@@ -1838,6 +1841,9 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
 
       checkCurrentTaskState();
 
+      // Check if all bounded task groups have completed
+      checkForBoundedCompletion();
+
       checkIfStreamInactiveAndTurnSupervisorIdle();
 
       // If supervisor is already stopping, don't contend for stateChangeLock since the block can be skipped
@@ -1854,6 +1860,8 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
           log.debug("Supervisor[%s] for datasource[%s] is already stopping.", supervisorId, dataSource);
         } else if (stateManager.isIdle()) {
           log.debug("Supervisor[%s] for datasource[%s] is idle.", supervisorId, dataSource);
+        } else if (boundedTasksCompleted) {
+          log.info("Supervisor[%s] for datasource[%s] has completed bounded processing.", supervisorId, dataSource);
         } else if (!spec.isSuspended()) {
           log.debug("Supervisor[%s] for datasource[%s] is running.", supervisorId, dataSource);
           stateManager.maybeSetState(SeekableStreamSupervisorStateManager.SeekableStreamState.CREATING_TASKS);
@@ -3110,6 +3118,37 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
             Function.identity(),
             p -> (SequenceOffsetType) endOffsets.get(p)
         ));
+  }
+
+  /**
+   * Check if all task groups in bounded mode have completed successfully.
+   * Sets boundedTasksCompleted flag to true when all partitions have reached their end offsets.
+   */
+  private void checkForBoundedCompletion()
+  {
+    if (!ioConfig.isBounded() || boundedTasksCompleted) {
+      return; // Not bounded mode, or already completed
+    }
+
+    BoundedStreamConfig boundedConfig = ioConfig.getBoundedStreamConfig();
+    if (!boundedConfig.isTerminateOnCompletion()) {
+      return; // Don't terminate even if complete
+    }
+
+    // Check if all task groups have completed
+    for (Integer groupId : partitionGroups.keySet()) {
+      if (!hasTaskGroupReachedBoundedEnd(groupId)) {
+        log.debug("TaskGroup[%d] has not yet reached bounded end", groupId);
+        return; // At least one group hasn't completed
+      }
+    }
+
+    // All task groups completed!
+    log.info("All bounded task groups have completed successfully. Marking supervisor for termination.");
+    boundedTasksCompleted = true;
+
+    // Stop creating new tasks and prepare for shutdown
+    stateManager.maybeSetState(SeekableStreamSupervisorStateManager.SeekableStreamState.IDLE);
   }
 
   /**
