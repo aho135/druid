@@ -201,6 +201,11 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
     // same sequences, even if the values in [partitionGroups] has been changed.
     final ImmutableMap<PartitionIdType, SequenceOffsetType> startingSequences;
 
+    // In bounded mode, this specifies the target ending sequences for this task group. Tasks will stop when they reach
+    // these offsets. In unbounded mode, this is null and tasks use the end-of-partition marker instead.
+    @Nullable
+    final ImmutableMap<PartitionIdType, SequenceOffsetType> endingSequences;
+
     // We don't include closed partitions in the starting offsets. However, we keep the full unfiltered map of
     // partitions, only used for generating the sequence name, to avoid ambiguity in sequence names if mulitple
     // task groups have nothing but closed partitions in their assignments.
@@ -229,6 +234,7 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
       this(
           groupId,
           startingSequences,
+          null, // endingSequences
           unfilteredStartingSequencesForSequenceName,
           minimumMessageTime,
           maximumMessageTime,
@@ -248,6 +254,7 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
     TaskGroup(
         int groupId,
         ImmutableMap<PartitionIdType, SequenceOffsetType> startingSequences,
+        @Nullable ImmutableMap<PartitionIdType, SequenceOffsetType> endingSequences,
         @Nullable ImmutableMap<PartitionIdType, SequenceOffsetType> unfilteredStartingSequencesForSequenceName,
         DateTime minimumMessageTime,
         DateTime maximumMessageTime,
@@ -257,6 +264,7 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
     {
       this.groupId = groupId;
       this.startingSequences = startingSequences;
+      this.endingSequences = endingSequences;
       this.unfilteredStartingSequencesForSequenceName = unfilteredStartingSequencesForSequenceName == null
                                                         ? startingSequences
                                                         : unfilteredStartingSequencesForSequenceName;
@@ -2343,6 +2351,15 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
                                   log.info("Creating a new task group for taskGroupId[%d]", taskGroupId);
                                   // We reassign the task's original base sequence name (from the existing task) to the
                                   // task group so that the replica segment allocations are the same.
+                                  ImmutableMap<PartitionIdType, SequenceOffsetType> endingSequencesFromTask = null;
+                                  if (seekableStreamIndexTask.getIOConfig().getEndSequenceNumbers() != null) {
+                                    endingSequencesFromTask = ImmutableMap.copyOf(
+                                        seekableStreamIndexTask.getIOConfig()
+                                                               .getEndSequenceNumbers()
+                                                               .getPartitionSequenceNumberMap()
+                                    );
+                                  }
+
                                   return new TaskGroup(
                                       taskGroupId,
                                       ImmutableMap.copyOf(
@@ -2350,6 +2367,7 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
                                                                  .getStartSequenceNumbers()
                                                                  .getPartitionSequenceNumberMap()
                                       ),
+                                      endingSequencesFromTask,
                                       null,
                                       seekableStreamIndexTask.getIOConfig().getMinimumMessageTime(),
                                       seekableStreamIndexTask.getIOConfig().getMaximumMessageTime(),
@@ -4294,12 +4312,31 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
               .collect(Collectors.toSet());
         }
 
-        log.info("Initializing taskGroup[%d] with startingOffsets[%s].", groupId, simpleStartingOffsets);
+        // In bounded mode, compute ending sequences from config
+        ImmutableMap<PartitionIdType, SequenceOffsetType> endingOffsets = null;
+        if (ioConfig.isBounded()) {
+          BoundedStreamConfig boundedConfig = ioConfig.getBoundedStreamConfig();
+          Map<?, ?> configuredEndOffsets = boundedConfig.getEndSequenceNumbers();
+          ImmutableMap.Builder<PartitionIdType, SequenceOffsetType> endingOffsetsBuilder = ImmutableMap.builder();
+          for (PartitionIdType partition : simpleStartingOffsets.keySet()) {
+            SequenceOffsetType endOffset = (SequenceOffsetType) configuredEndOffsets.get(partition);
+            if (endOffset != null) {
+              endingOffsetsBuilder.put(partition, endOffset);
+            }
+          }
+          endingOffsets = endingOffsetsBuilder.build();
+          log.info("Initializing taskGroup[%d] with startingOffsets[%s] and endingOffsets[%s] (bounded mode).",
+                   groupId, simpleStartingOffsets, endingOffsets);
+        } else {
+          log.info("Initializing taskGroup[%d] with startingOffsets[%s].", groupId, simpleStartingOffsets);
+        }
+
         activelyReadingTaskGroups.put(
             groupId,
             new TaskGroup(
                 groupId,
                 simpleStartingOffsets,
+                endingOffsets,
                 simpleUnfilteredStartingOffsets,
                 minimumMessageTime,
                 maximumMessageTime,
@@ -4550,10 +4587,19 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
 
     TaskGroup group = activelyReadingTaskGroups.get(groupId);
     Map<PartitionIdType, SequenceOffsetType> startPartitions = group.startingSequences;
-    Map<PartitionIdType, SequenceOffsetType> endPartitions = new HashMap<>();
-    for (PartitionIdType partition : startPartitions.keySet()) {
-      endPartitions.put(partition, getEndOfPartitionMarker());
+    Map<PartitionIdType, SequenceOffsetType> endPartitions;
+
+    // In bounded mode, use ending sequences from the TaskGroup; otherwise use end-of-partition marker
+    if (group.endingSequences != null) {
+      endPartitions = new HashMap<>(group.endingSequences);
+      log.info("Creating tasks for group[%d] with bounded endPartitions[%s].", groupId, endPartitions);
+    } else {
+      endPartitions = new HashMap<>();
+      for (PartitionIdType partition : startPartitions.keySet()) {
+        endPartitions.put(partition, getEndOfPartitionMarker());
+      }
     }
+
     Set<PartitionIdType> exclusiveStartSequenceNumberPartitions = activelyReadingTaskGroups
         .get(groupId)
         .exclusiveStartSequenceNumberPartitions;
