@@ -2989,6 +2989,112 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
   }
 
   /**
+   * Check if all partitions in a task group have reached their bounded end offsets.
+   * Used to determine if the task group completed successfully vs failed midway.
+   *
+   * @param groupId Task group ID to check
+   * @return true if all partitions have reached or exceeded their end offsets
+   */
+  private boolean hasTaskGroupReachedBoundedEnd(int groupId)
+  {
+    BoundedStreamConfig boundedConfig = ioConfig.getBoundedStreamConfig();
+    Map<?, ?> endOffsets = boundedConfig.getEndSequenceNumbers();
+    Map<PartitionIdType, SequenceOffsetType> currentOffsets = getOffsetsFromMetadataStorage();
+
+    if (currentOffsets == null || currentOffsets.isEmpty()) {
+      log.debug("No checkpointed offsets found, taskGroup[%d] has not completed", groupId);
+      return false; // No progress yet, task hasn't completed
+    }
+
+    Set<PartitionIdType> partitionsInGroup = partitionGroups.get(groupId);
+    if (partitionsInGroup == null || partitionsInGroup.isEmpty()) {
+      return false;
+    }
+
+    // Check if ALL partitions in this group have reached their end offsets
+    for (PartitionIdType partition : partitionsInGroup) {
+      SequenceOffsetType endOffset = (SequenceOffsetType) endOffsets.get(partition);
+      SequenceOffsetType currentOffset = currentOffsets.get(partition);
+
+      if (currentOffset == null) {
+        log.debug(
+            "Partition[%s] in taskGroup[%d] has no checkpointed offset, not complete",
+            partition,
+            groupId
+        );
+        return false; // Partition hasn't started processing
+      }
+
+      if (!isOffsetAtOrBeyond(currentOffset, endOffset)) {
+        log.debug(
+            "Partition[%s] in taskGroup[%d] at offset[%s], has not reached end[%s]",
+            partition,
+            groupId,
+            currentOffset,
+            endOffset
+        );
+        return false; // This partition hasn't reached its end
+      }
+    }
+
+    log.info(
+        "All partitions in taskGroup[%d] have reached their end offsets",
+        groupId
+    );
+    return true; // All partitions have reached their end offsets
+  }
+
+  /**
+   * Get current offsets from metadata storage for a specific task group.
+   *
+   * @param groupId Task group ID
+   * @return Map of partition to current offset
+   */
+  private Map<PartitionIdType, SequenceOffsetType> getCurrentOffsetsForGroup(int groupId)
+  {
+    Map<PartitionIdType, SequenceOffsetType> allOffsets = getOffsetsFromMetadataStorage();
+    if (allOffsets == null || allOffsets.isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    Set<PartitionIdType> partitionsInGroup = partitionGroups.get(groupId);
+    if (partitionsInGroup == null) {
+      return Collections.emptyMap();
+    }
+
+    return partitionsInGroup.stream()
+        .filter(allOffsets::containsKey)
+        .collect(Collectors.toMap(
+            Function.identity(),
+            allOffsets::get
+        ));
+  }
+
+  /**
+   * Get end offsets from bounded config for a specific task group.
+   *
+   * @param groupId Task group ID
+   * @return Map of partition to end offset
+   */
+  private Map<PartitionIdType, SequenceOffsetType> getEndOffsetsForGroup(int groupId)
+  {
+    BoundedStreamConfig boundedConfig = ioConfig.getBoundedStreamConfig();
+    Map<?, ?> endOffsets = boundedConfig.getEndSequenceNumbers();
+    Set<PartitionIdType> partitionsInGroup = partitionGroups.get(groupId);
+
+    if (partitionsInGroup == null) {
+      return Collections.emptyMap();
+    }
+
+    return partitionsInGroup.stream()
+        .filter(p -> endOffsets.containsKey(p))
+        .collect(Collectors.toMap(
+            Function.identity(),
+            p -> (SequenceOffsetType) endOffsets.get(p)
+        ));
+  }
+
+  /**
    * Initialize partitionGroups from bounded config instead of from stream discovery.
    * This prevents the supervisor from trying to recreate tasks as they complete.
    * Only used in bounded mode during supervisor startup.
@@ -4789,6 +4895,19 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
    * @return true if isInstance else false
    */
   protected abstract boolean doesTaskMatchSupervisor(Task task);
+
+  /**
+   * Compares if current offset has reached or exceeded the target offset.
+   * Used to determine if a bounded task group has completed successfully.
+   *
+   * @param current Current offset from metadata storage
+   * @param target Target end offset from bounded config
+   * @return true if current >= target
+   */
+  protected abstract boolean isOffsetAtOrBeyond(
+      SequenceOffsetType current,
+      SequenceOffsetType target
+  );
 
   /**
    * Submits a backfill task to process skipped offsets between startOffsets and endOffsets.

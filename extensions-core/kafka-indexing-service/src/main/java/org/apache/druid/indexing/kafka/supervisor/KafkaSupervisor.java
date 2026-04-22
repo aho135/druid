@@ -791,4 +791,11 @@ public class KafkaSupervisor extends SeekableStreamSupervisor<KafkaTopicPartitio
 
     return match ? new KafkaTopicPartition(isMultiTopic(), streamMatchValue, kafkaTopicPartition.partition()) : null;
   }
+
+  @Override
+  protected boolean isOffsetAtOrBeyond(Long current, Long target)
+  {
+    // Kafka offsets are longs, simple numeric comparison
+    return current >= target;
+  }
 }

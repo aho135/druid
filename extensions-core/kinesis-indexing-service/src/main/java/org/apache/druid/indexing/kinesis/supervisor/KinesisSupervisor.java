@@ -489,4 +489,11 @@ public class KinesisSupervisor extends SeekableStreamSupervisor<String, String, 
 
     return new KinesisDataSourceMetadata(newSequences);
   }
+
+  @Override
+  protected boolean isOffsetAtOrBeyond(String current, String target)
+  {
+    // Kinesis sequence numbers are strings but lexicographically comparable
+    return current.compareTo(target) >= 0;
+  }
 }
