@@ -197,6 +197,55 @@ public class KafkaSupervisorIOConfig extends SeekableStreamSupervisorIOConfig
            '}';
   }
 
+  /**
+   * Create a bounded copy of this IOConfig with specific start and end offsets.
+   * Used for bounded stream processing (e.g., backfill operations).
+   *
+   * @param startSequenceNumbers Map of partition to start offset
+   * @param endSequenceNumbers   Map of partition to end offset
+   * @param taskCount            Number of tasks to use for bounded processing
+   * @return A new KafkaSupervisorIOConfig configured for bounded processing
+   */
+  public KafkaSupervisorIOConfig createBoundedCopy(
+      Map<Integer, Long> startSequenceNumbers,
+      Map<Integer, Long> endSequenceNumbers,
+      int taskCount
+  )
+  {
+    BoundedStreamConfig boundedConfig = new BoundedStreamConfig(
+        startSequenceNumbers,
+        endSequenceNumbers,
+        true, // terminateOnCompletion
+        taskCount
+    );
+
+    return new KafkaSupervisorIOConfig(
+        topic,
+        topicPattern,
+        getInputFormat(),
+        getReplicas(),
+        null, // taskCount will be overridden by boundedConfig
+        getTaskDuration(),
+        consumerProperties,
+        getAutoScalerConfig(),
+        getLagAggregator(),
+        pollTimeout,
+        getStartDelay(),
+        getPeriod(),
+        isUseEarliestOffset(),
+        getCompletionTimeout(),
+        getLateMessageRejectionPeriod(),
+        getEarlyMessageRejectionPeriod(),
+        getLateMessageRejectionStartDateTime().orElse(null),
+        configOverrides,
+        getIdleConfig(),
+        getStopTaskCount(),
+        emitTimeLagMetrics,
+        getServerPriorityToReplicas(),
+        boundedConfig
+    );
+  }
+
   private static String checkTopicArguments(String topic, String topicPattern)
   {
     if (topic == null && topicPattern == null) {

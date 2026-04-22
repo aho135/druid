@@ -159,6 +159,54 @@ public class KinesisSupervisorIOConfig extends SeekableStreamSupervisorIOConfig
     return deaggregate;
   }
 
+  /**
+   * Create a bounded copy of this IOConfig with specific start and end offsets.
+   * Used for bounded stream processing (e.g., backfill operations).
+   *
+   * @param startSequenceNumbers Map of shard to start sequence number
+   * @param endSequenceNumbers   Map of shard to end sequence number
+   * @param taskCount            Number of tasks to use for bounded processing
+   * @return A new KinesisSupervisorIOConfig configured for bounded processing
+   */
+  public KinesisSupervisorIOConfig createBoundedCopy(
+      Map<String, String> startSequenceNumbers,
+      Map<String, String> endSequenceNumbers,
+      int taskCount
+  )
+  {
+    BoundedStreamConfig boundedConfig = new BoundedStreamConfig(
+        startSequenceNumbers,
+        endSequenceNumbers,
+        true, // terminateOnCompletion
+        taskCount
+    );
+
+    return new KinesisSupervisorIOConfig(
+        getStream(),
+        getInputFormat(),
+        endpoint,
+        null, // region
+        getReplicas(),
+        null, // taskCount will be overridden by boundedConfig
+        getTaskDuration(),
+        getStartDelay(),
+        getPeriod(),
+        isUseEarliestSequenceNumber(),
+        getCompletionTimeout(),
+        getLateMessageRejectionPeriod(),
+        getEarlyMessageRejectionPeriod(),
+        getLateMessageRejectionStartDateTime().orElse(null),
+        recordsPerFetch,
+        fetchDelayMillis,
+        awsAssumedRoleArn,
+        awsExternalId,
+        getAutoScalerConfig(),
+        deaggregate,
+        getServerPriorityToReplicas(),
+        boundedConfig
+    );
+  }
+
   @Override
   public String toString()
   {
