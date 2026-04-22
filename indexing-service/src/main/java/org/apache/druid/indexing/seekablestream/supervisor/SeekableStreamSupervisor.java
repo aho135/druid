@@ -3092,7 +3092,7 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
     return partitionsInGroup.stream()
         .filter(allOffsets::containsKey)
         .collect(Collectors.toMap(
-            Function.identity(),
+            p -> p,
             allOffsets::get
         ));
   }
@@ -3116,7 +3116,7 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
     return partitionsInGroup.stream()
         .filter(p -> endOffsets.containsKey(p))
         .collect(Collectors.toMap(
-            Function.identity(),
+            p -> p,
             p -> (SequenceOffsetType) endOffsets.get(p)
         ));
   }
@@ -3147,9 +3147,6 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
     // All task groups completed!
     log.info("All bounded task groups have completed successfully. Marking supervisor for termination.");
     boundedTasksCompleted = true;
-
-    // Stop creating new tasks and prepare for shutdown
-    stateManager.maybeSetState(SeekableStreamSupervisorStateManager.SeekableStreamState.IDLE);
   }
 
   /**
@@ -4371,18 +4368,38 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
           log.info("Initializing taskGroup[%d] with startingOffsets[%s].", groupId, simpleStartingOffsets);
         }
 
-        activelyReadingTaskGroups.put(
-            groupId,
-            new TaskGroup(
-                groupId,
-                simpleStartingOffsets,
-                endingOffsets,
-                simpleUnfilteredStartingOffsets,
-                minimumMessageTime,
-                maximumMessageTime,
-                exclusiveStartSequenceNumberPartitions
-            )
-        );
+        // Create TaskGroup - use the long constructor if we have ending offsets (bounded mode)
+        TaskGroup taskGroup;
+        if (endingOffsets != null) {
+          String baseSequenceName = generateSequenceName(
+              simpleUnfilteredStartingOffsets,
+              minimumMessageTime,
+              maximumMessageTime,
+              spec.getDataSchema(),
+              taskTuningConfig
+          );
+          taskGroup = new TaskGroup(
+              groupId,
+              simpleStartingOffsets,
+              endingOffsets,
+              simpleUnfilteredStartingOffsets,
+              minimumMessageTime,
+              maximumMessageTime,
+              exclusiveStartSequenceNumberPartitions,
+              baseSequenceName
+          );
+        } else {
+          taskGroup = new TaskGroup(
+              groupId,
+              simpleStartingOffsets,
+              simpleUnfilteredStartingOffsets,
+              minimumMessageTime,
+              maximumMessageTime,
+              exclusiveStartSequenceNumberPartitions
+          );
+        }
+
+        activelyReadingTaskGroups.put(groupId, taskGroup);
       }
     }
 
