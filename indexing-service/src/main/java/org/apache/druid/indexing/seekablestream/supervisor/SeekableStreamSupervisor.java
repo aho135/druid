@@ -4374,6 +4374,33 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
   )
   {
     ImmutableMap.Builder<PartitionIdType, OrderedSequenceNumber<SequenceOffsetType>> builder = ImmutableMap.builder();
+
+    // In bounded mode, use offsets from config or metadata storage for recovery
+    if (ioConfig.isBounded()) {
+      BoundedStreamConfig boundedConfig = ioConfig.getBoundedStreamConfig();
+      Map<?, ?> configuredStartOffsets = boundedConfig.getStartSequenceNumbers();
+      final Map<PartitionIdType, SequenceOffsetType> metadataOffsets = getOffsetsFromMetadataStorage();
+
+      for (PartitionIdType partitionId : partitionGroups.get(groupId)) {
+        // Check if partition has already made progress (for failure recovery)
+        SequenceOffsetType metadataOffset = metadataOffsets.get(partitionId);
+        if (metadataOffset != null) {
+          // Resume from last committed offset
+          log.info("Bounded mode: resuming partition[%s] from metadata offset[%s]", partitionId, metadataOffset);
+          builder.put(partitionId, makeSequenceNumber(metadataOffset, useExclusiveStartSequenceNumberForNonFirstSequence()));
+        } else {
+          // Use configured start offset for this partition
+          SequenceOffsetType configuredOffset = (SequenceOffsetType) configuredStartOffsets.get(partitionId);
+          if (configuredOffset != null) {
+            log.info("Bounded mode: starting partition[%s] from configured offset[%s]", partitionId, configuredOffset);
+            builder.put(partitionId, makeSequenceNumber(configuredOffset, false));
+          }
+        }
+      }
+      return builder.build();
+    }
+
+    // Normal unbounded mode logic
     final Map<PartitionIdType, SequenceOffsetType> metadataOffsets = getOffsetsFromMetadataStorage();
     for (PartitionIdType partitionId : partitionGroups.get(groupId)) {
       SequenceOffsetType sequence = partitionOffsets.get(partitionId);
