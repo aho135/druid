@@ -365,10 +365,8 @@ public class RabbitStreamSupervisor extends SeekableStreamSupervisor<String, Lon
   @Override
   protected boolean isOffsetAtOrBeyond(Long current, Long target)
   {
-    throw new UnsupportedOperationException(
-        "Bounded stream processing is not yet supported for RabbitMQ. " +
-        "This feature is currently only available for Kafka supervisors."
-    );
+    // RabbitMQ uses Long sequence numbers (delivery tags)
+    return current >= target;
   }
 
   @Override

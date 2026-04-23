@@ -384,10 +384,9 @@ public class KinesisSupervisor extends SeekableStreamSupervisor<String, String, 
   @Override
   protected boolean isOffsetAtOrBeyond(String current, String target)
   {
-    throw new UnsupportedOperationException(
-        "Bounded stream processing is not yet supported for Kinesis. " +
-        "This feature is currently only available for Kafka supervisors."
-    );
+    // Kinesis sequence numbers are comparable strings
+    // They can be compared lexicographically to determine order
+    return current.compareTo(target) >= 0;
   }
 
   @Override
