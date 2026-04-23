@@ -328,6 +328,24 @@ public abstract class SeekableStreamSupervisorTestBase
     {
       return partitionNumbers;
     }
+
+    @Override
+    protected boolean isOffsetAtOrBeyond(String current, String target)
+    {
+      return Long.parseLong(current) >= Long.parseLong(target);
+    }
+
+    @Override
+    protected String createPartitionIdFromString(String partitionIdString)
+    {
+      return partitionIdString;
+    }
+
+    @Override
+    protected String createSequenceOffsetFromObject(Object offsetObj)
+    {
+      return offsetObj.toString();
+    }
   }
 
   class StateOverrideTestSeekableStreamSupervisor extends TestSeekableStreamSupervisor
@@ -534,6 +552,7 @@ public abstract class SeekableStreamSupervisorTestBase
         null,
         autoScalerConfig,
         LagAggregator.DEFAULT,
+        null,
         null,
         null,
         null,

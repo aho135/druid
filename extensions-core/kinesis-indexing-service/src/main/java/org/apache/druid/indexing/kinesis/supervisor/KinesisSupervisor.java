@@ -382,6 +382,29 @@ public class KinesisSupervisor extends SeekableStreamSupervisor<String, String, 
   }
 
   @Override
+  protected boolean isOffsetAtOrBeyond(String current, String target)
+  {
+    throw new UnsupportedOperationException(
+        "Bounded stream processing is not yet supported for Kinesis. " +
+        "This feature is currently only available for Kafka supervisors."
+    );
+  }
+
+  @Override
+  protected String createPartitionIdFromString(String partitionIdString)
+  {
+    // Kinesis uses String as partition ID, so just return the string as-is
+    return partitionIdString;
+  }
+
+  @Override
+  protected String createSequenceOffsetFromObject(Object offsetObj)
+  {
+    // Kinesis uses String as sequence offset
+    return offsetObj.toString();
+  }
+
+  @Override
   protected boolean useExclusiveStartSequenceNumberForNonFirstSequence()
   {
     return true;

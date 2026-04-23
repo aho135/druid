@@ -64,7 +64,8 @@ public class SupervisorStateManager
     RUNNING(true, false),
     IDLE(true, false),
     SUSPENDED(true, false),
-    STOPPING(true, false);
+    STOPPING(true, false),
+    COMPLETED(true, false);
 
     private final boolean healthy;
     private final boolean firstRunOnly;
@@ -122,14 +123,18 @@ public class SupervisorStateManager
   /**
    * Certain states are only valid if the supervisor hasn't had a successful iteration. This method checks if there's
    * been at least one successful iteration, and if applicable, sets supervisor state to an appropriate new state.
-   * A STOPPING supervisor cannot transition to any other state as this state is final.
+   * STOPPING and COMPLETED are terminal states that cannot transition to any other state.
    * This method must be thread-safe as multiple threads trying to update may lead to an invalid state.
    */
   public synchronized void maybeSetState(State proposedState)
   {
-    if (BasicState.STOPPING.equals(this.supervisorState) || BasicState.STOPPING.equals(proposedState)) {
-      // STOPPING takes precedence over all other states
-      supervisorState = BasicState.STOPPING;
+    // Terminal states (STOPPING, COMPLETED) take precedence over all other states
+    if (BasicState.STOPPING.equals(this.supervisorState) || BasicState.COMPLETED.equals(this.supervisorState)) {
+      // Already in a terminal state, cannot transition
+      return;
+    } else if (BasicState.STOPPING.equals(proposedState) || BasicState.COMPLETED.equals(proposedState)) {
+      // Transitioning to a terminal state
+      supervisorState = proposedState;
       return;
     }
 

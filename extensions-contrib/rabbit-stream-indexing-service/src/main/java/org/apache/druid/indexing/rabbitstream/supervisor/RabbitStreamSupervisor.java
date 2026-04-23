@@ -363,6 +363,35 @@ public class RabbitStreamSupervisor extends SeekableStreamSupervisor<String, Lon
   }
 
   @Override
+  protected boolean isOffsetAtOrBeyond(Long current, Long target)
+  {
+    throw new UnsupportedOperationException(
+        "Bounded stream processing is not yet supported for RabbitMQ. " +
+        "This feature is currently only available for Kafka supervisors."
+    );
+  }
+
+  @Override
+  protected String createPartitionIdFromString(String partitionIdString)
+  {
+    // RabbitMQ uses String as partition ID, so just return the string as-is
+    return partitionIdString;
+  }
+
+  @Override
+  protected Long createSequenceOffsetFromObject(Object offsetObj)
+  {
+    // RabbitMQ uses Long as sequence offset
+    if (offsetObj instanceof Number) {
+      return ((Number) offsetObj).longValue();
+    }
+    if (offsetObj instanceof String) {
+      return Long.parseLong((String) offsetObj);
+    }
+    throw new IllegalArgumentException("Cannot convert " + offsetObj.getClass() + " to Long offset");
+  }
+
+  @Override
   public LagStats computeLagStats()
   {
     Map<String, Long> partitionRecordLag = getPartitionRecordLag();

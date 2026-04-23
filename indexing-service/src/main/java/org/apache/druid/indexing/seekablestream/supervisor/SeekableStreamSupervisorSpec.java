@@ -37,6 +37,7 @@ import org.apache.druid.indexing.overlord.supervisor.autoscaler.SupervisorTaskAu
 import org.apache.druid.indexing.seekablestream.SeekableStreamIndexTaskClientFactory;
 import org.apache.druid.indexing.seekablestream.supervisor.autoscaler.AutoScalerConfig;
 import org.apache.druid.indexing.seekablestream.supervisor.autoscaler.NoopTaskAutoScaler;
+import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.metrics.DruidMonitorSchedulerConfig;
 import org.apache.druid.segment.incremental.RowIngestionMetersFactory;
@@ -49,6 +50,8 @@ import java.util.Map;
 
 public abstract class SeekableStreamSupervisorSpec implements SupervisorSpec
 {
+  private static final Logger log = new Logger(SeekableStreamSupervisorSpec.class);
+
   protected static final String ILLEGAL_INPUT_SOURCE_UPDATE_ERROR_MESSAGE =
       "Update of the input source stream from [%s] to [%s] is not supported for a running supervisor."
       + "%nTo perform the update safely, follow these steps:"
@@ -258,6 +261,42 @@ public abstract class SeekableStreamSupervisorSpec implements SupervisorSpec
 
     if (!this.getSource().equals(other.getSource())) {
       throw InvalidInput.exception(ILLEGAL_INPUT_SOURCE_UPDATE_ERROR_MESSAGE, this.getSource(), other.getSource());
+    }
+
+    // Validate bounded stream configuration
+    validateBoundedStreamConfig(other);
+  }
+
+  /**
+   * Validates bounded stream configuration for the supervisor spec.
+   *
+   * @param spec the supervisor spec to validate
+   * @throws DruidException if the bounded stream configuration is invalid
+   */
+  protected void validateBoundedStreamConfig(SeekableStreamSupervisorSpec spec) throws DruidException
+  {
+    SeekableStreamSupervisorIOConfig ioConfig = spec.getIoConfig();
+
+    if (ioConfig.isBounded()) {
+      // Validate partition consistency
+      BoundedStreamConfig boundedConfig = ioConfig.getBoundedStreamConfig();
+      if (!boundedConfig.getStartSequenceNumbers().keySet().equals(boundedConfig.getEndSequenceNumbers().keySet())) {
+        throw InvalidInput.exception(
+            "Bounded stream config has mismatched partitions. Start: %s, End: %s",
+            boundedConfig.getStartSequenceNumbers().keySet(),
+            boundedConfig.getEndSequenceNumbers().keySet()
+        );
+      }
+
+      // Warn if useConcurrentLocks is not enabled
+      Map<String, Object> context = spec.getContext();
+      if (context == null || !Boolean.TRUE.equals(context.get("useConcurrentLocks"))) {
+        log.warn(
+            "Bounded stream processing without 'useConcurrentLocks=true' may fail " +
+            "if other supervisors are running or segments already exist for these intervals. " +
+            "Consider setting useConcurrentLocks=true in the supervisor context."
+        );
+      }
     }
   }
 

@@ -468,6 +468,7 @@ public class KinesisSupervisorTest extends EasyMockSupport
         null,
         null,
         false,
+        null,
         null
     );
     KinesisIndexTaskClientFactory clientFactory = new KinesisIndexTaskClientFactory(null, OBJECT_MAPPER);
@@ -534,6 +535,7 @@ public class KinesisSupervisorTest extends EasyMockSupport
         null,
         null,
         false,
+        null,
         null
     );
 
@@ -562,6 +564,7 @@ public class KinesisSupervisorTest extends EasyMockSupport
         null,
         OBJECT_MAPPER.convertValue(new HashMap<>(), AutoScalerConfig.class),
         false,
+        null,
         null
     );
 
@@ -4219,6 +4222,7 @@ public class KinesisSupervisorTest extends EasyMockSupport
             null,
             null,
             false,
+            null,
             null
         ),
         null,
@@ -5184,6 +5188,7 @@ public class KinesisSupervisorTest extends EasyMockSupport
         null,
         null,
         false,
+        null,
         null
     );
 
@@ -5327,6 +5332,7 @@ public class KinesisSupervisorTest extends EasyMockSupport
         null,
          autoScalerConfig,
         false,
+        null,
         null
     );
 
@@ -5414,6 +5420,7 @@ public class KinesisSupervisorTest extends EasyMockSupport
         null,
         null,
         false,
+        null,
         null
     );
 
@@ -5503,6 +5510,7 @@ public class KinesisSupervisorTest extends EasyMockSupport
         null,
         null,
         false,
+        null,
         null
     );
 

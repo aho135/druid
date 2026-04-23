@@ -54,6 +54,7 @@ public abstract class SeekableStreamSupervisorIOConfig
   @Nullable private final IdleConfig idleConfig;
   @Nullable private final Integer stopTaskCount;
   @Nullable private final Map<Integer, Integer> serverPriorityToReplicas;
+  @Nullable private final BoundedStreamConfig boundedStreamConfig;
 
   private final LagAggregator lagAggregator;
   private final boolean autoScalerEnabled;
@@ -75,7 +76,8 @@ public abstract class SeekableStreamSupervisorIOConfig
       DateTime lateMessageRejectionStartDateTime,
       @Nullable IdleConfig idleConfig,
       @Nullable Integer stopTaskCount,
-      @Nullable Map<Integer, Integer> serverPriorityToReplicas
+      @Nullable Map<Integer, Integer> serverPriorityToReplicas,
+      @Nullable BoundedStreamConfig boundedStreamConfig
   )
   {
     this.stream = Preconditions.checkNotNull(stream, "stream cannot be null");
@@ -128,6 +130,7 @@ public abstract class SeekableStreamSupervisorIOConfig
 
     this.idleConfig = idleConfig;
     this.serverPriorityToReplicas = serverPriorityToReplicas;
+    this.boundedStreamConfig = boundedStreamConfig;
 
     if (this.serverPriorityToReplicas != null) {
       int serverPriorityReplicas = 0;
@@ -282,5 +285,17 @@ public abstract class SeekableStreamSupervisorIOConfig
       return (int) Math.max(1, Math.floor(taskCount * autoScalerConfig.getStopTaskCountRatio()));
     }
     return stopTaskCount == null ? taskCount : stopTaskCount;
+  }
+
+  @Nullable
+  @JsonProperty
+  public BoundedStreamConfig getBoundedStreamConfig()
+  {
+    return boundedStreamConfig;
+  }
+
+  public boolean isBounded()
+  {
+    return boundedStreamConfig != null;
   }
 }
