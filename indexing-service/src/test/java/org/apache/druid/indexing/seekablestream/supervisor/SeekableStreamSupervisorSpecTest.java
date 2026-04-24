@@ -1172,6 +1172,151 @@ public class SeekableStreamSupervisorSpecTest extends SeekableStreamSupervisorTe
   }
 
   @Test
+  public void test_validateBoundedStreamConfig_WithValidConfig()
+  {
+    mockIngestionSchema();
+
+    Map<String, Object> startOffsets = ImmutableMap.of("0", 100, "1", 200);
+    Map<String, Object> endOffsets = ImmutableMap.of("0", 500, "1", 600);
+    BoundedStreamConfig validConfig = new BoundedStreamConfig(startOffsets, endOffsets);
+
+    SeekableStreamSupervisorIOConfig ioConfigWithValidBounded = new SeekableStreamSupervisorIOConfig(
+        "stream",
+        new JsonInputFormat(new JSONPathSpec(true, ImmutableList.of()), ImmutableMap.of(), false, false, false),
+        1,
+        1,
+        new Period("PT1H"),
+        new Period("P1D"),
+        new Period("PT30S"),
+        false,
+        new Period("PT30M"),
+        null,
+        null,
+        null,
+        LagAggregator.DEFAULT,
+        null,
+        null,
+        null,
+        null,
+        validConfig
+    )
+    {
+    };
+
+    SeekableStreamSupervisorIngestionSpec ingestionWithValidBounded = EasyMock.mock(SeekableStreamSupervisorIngestionSpec.class);
+    EasyMock.expect(ingestionWithValidBounded.getIOConfig()).andReturn(ioConfigWithValidBounded).anyTimes();
+    EasyMock.expect(ingestionWithValidBounded.getDataSchema()).andReturn(dataSchema).anyTimes();
+    EasyMock.expect(ingestionWithValidBounded.getTuningConfig()).andReturn(seekableStreamSupervisorTuningConfig).anyTimes();
+    EasyMock.replay(ingestionWithValidBounded);
+
+    TestSeekableStreamSupervisorSpec spec = new TestSeekableStreamSupervisorSpec(
+        ingestionSchema,
+        ImmutableMap.of("key", "value"),
+        false,
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        indexTaskClientFactory,
+        mapper,
+        emitter,
+        monitorSchedulerConfig,
+        rowIngestionMetersFactory,
+        supervisorStateManagerConfig,
+        supervisor4,
+        "id1"
+    );
+
+    TestSeekableStreamSupervisorSpec specWithValidBounded = new TestSeekableStreamSupervisorSpec(
+        ingestionWithValidBounded,
+        ImmutableMap.of("key", "value"),
+        false,
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        indexTaskClientFactory,
+        mapper,
+        emitter,
+        monitorSchedulerConfig,
+        rowIngestionMetersFactory,
+        supervisorStateManagerConfig,
+        supervisor4,
+        "id1"
+    );
+
+    // Should not throw
+    spec.validateBoundedStreamConfig(specWithValidBounded);
+  }
+
+  @Test
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  public void test_validateBoundedStreamConfig_WithMismatchedPartitions()
+  {
+    mockIngestionSchema();
+
+    // Create a mock BoundedStreamConfig that returns mismatched partition sets
+    BoundedStreamConfig mismatchedConfig = EasyMock.mock(BoundedStreamConfig.class);
+    Map startMap = ImmutableMap.of("0", 100L, "1", 200L);
+    Map endMap = ImmutableMap.of("0", 500L, "2", 600L);
+    EasyMock.expect(mismatchedConfig.getStartSequenceNumbers()).andStubReturn(startMap);
+    EasyMock.expect(mismatchedConfig.getEndSequenceNumbers()).andStubReturn(endMap);
+    EasyMock.replay(mismatchedConfig);
+
+    SeekableStreamSupervisorIOConfig ioConfigWithMismatchedBounded = EasyMock.mock(SeekableStreamSupervisorIOConfig.class);
+    EasyMock.expect(ioConfigWithMismatchedBounded.isBounded()).andReturn(true).anyTimes();
+    EasyMock.expect(ioConfigWithMismatchedBounded.getBoundedStreamConfig()).andReturn(mismatchedConfig).anyTimes();
+    EasyMock.replay(ioConfigWithMismatchedBounded);
+
+    SeekableStreamSupervisorIngestionSpec ingestionWithMismatchedBounded = EasyMock.mock(SeekableStreamSupervisorIngestionSpec.class);
+    EasyMock.expect(ingestionWithMismatchedBounded.getIOConfig()).andReturn(ioConfigWithMismatchedBounded).anyTimes();
+    EasyMock.expect(ingestionWithMismatchedBounded.getDataSchema()).andReturn(dataSchema).anyTimes();
+    EasyMock.expect(ingestionWithMismatchedBounded.getTuningConfig()).andReturn(seekableStreamSupervisorTuningConfig).anyTimes();
+    EasyMock.replay(ingestionWithMismatchedBounded);
+
+    TestSeekableStreamSupervisorSpec spec = new TestSeekableStreamSupervisorSpec(
+        ingestionSchema,
+        ImmutableMap.of("key", "value"),
+        false,
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        indexTaskClientFactory,
+        mapper,
+        emitter,
+        monitorSchedulerConfig,
+        rowIngestionMetersFactory,
+        supervisorStateManagerConfig,
+        supervisor4,
+        "id1"
+    );
+
+    TestSeekableStreamSupervisorSpec specWithMismatchedBounded = new TestSeekableStreamSupervisorSpec(
+        ingestionWithMismatchedBounded,
+        ImmutableMap.of("key", "value"),
+        false,
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        indexTaskClientFactory,
+        mapper,
+        emitter,
+        monitorSchedulerConfig,
+        rowIngestionMetersFactory,
+        supervisorStateManagerConfig,
+        supervisor4,
+        "id1"
+    );
+
+    MatcherAssert.assertThat(
+        assertThrows(DruidException.class, () -> spec.validateBoundedStreamConfig(specWithMismatchedBounded)),
+        new DruidExceptionMatcher(
+            DruidException.Persona.USER,
+            DruidException.Category.INVALID_INPUT,
+            "invalidInput"
+        ).expectMessageContains("Bounded stream config has mismatched partitions")
+    );
+  }
+
+  @Test
   public void test_dynamicAllocationNotice_skipsScalingAndEmitsReason_ifTasksArePublishing() throws InterruptedException
   {
     EasyMock.expect(spec.getId()).andReturn(SUPERVISOR).anyTimes();
