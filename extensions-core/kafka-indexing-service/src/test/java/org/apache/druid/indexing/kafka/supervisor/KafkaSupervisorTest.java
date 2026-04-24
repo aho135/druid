@@ -5554,7 +5554,7 @@ public class KafkaSupervisorTest extends EasyMockSupport
 
     // Test type conversion methods
     KafkaTopicPartition partition0 = supervisor.createPartitionIdFromString(topic + ":0");
-    Assert.assertEquals(topic, partition0.topic());
+    Assert.assertEquals(topic, partition0.topic().get());
     Assert.assertEquals(0, partition0.partition());
 
     Long offset = supervisor.createSequenceOffsetFromObject(100);
