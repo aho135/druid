@@ -504,5 +504,35 @@ public class RabbitStreamSupervisorTest extends EasyMockSupport
     Assert.assertNotNull(rabbitSupervisorIOConfig.getBoundedStreamConfig());
     Assert.assertEquals(2, rabbitSupervisorIOConfig.getBoundedStreamConfig().getStartSequenceNumbers().size());
     Assert.assertEquals(2, rabbitSupervisorIOConfig.getBoundedStreamConfig().getEndSequenceNumbers().size());
+
+    // Create supervisor to test type conversion methods
+    supervisor = getSupervisor(
+        "supervisorId",
+        1,
+        1,
+        false,
+        "PT1H",
+        null,
+        null,
+        dataSchema,
+        tuningConfig
+    );
+
+    // Test createPartitionIdFromString
+    String queueName = supervisor.createPartitionIdFromString("queue-0");
+    Assert.assertEquals("queue-0", queueName);
+
+    // Test createSequenceOffsetFromObject with Integer
+    Long offset = supervisor.createSequenceOffsetFromObject(100);
+    Assert.assertEquals(Long.valueOf(100L), offset);
+
+    // Test createSequenceOffsetFromObject with String
+    offset = supervisor.createSequenceOffsetFromObject("200");
+    Assert.assertEquals(Long.valueOf(200L), offset);
+
+    // Test isOffsetAtOrBeyond
+    Assert.assertTrue(supervisor.isOffsetAtOrBeyond(500L, 100L));
+    Assert.assertTrue(supervisor.isOffsetAtOrBeyond(100L, 100L));
+    Assert.assertFalse(supervisor.isOffsetAtOrBeyond(50L, 100L));
   }
 }

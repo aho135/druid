@@ -70,6 +70,7 @@ import org.apache.druid.indexing.seekablestream.SeekableStreamIndexTaskRunner.St
 import org.apache.druid.indexing.seekablestream.SeekableStreamIndexTaskTuningConfig;
 import org.apache.druid.indexing.seekablestream.SeekableStreamStartSequenceNumbers;
 import org.apache.druid.indexing.seekablestream.common.RecordSupplier;
+import org.apache.druid.indexing.seekablestream.supervisor.BoundedStreamConfig;
 import org.apache.druid.indexing.seekablestream.supervisor.IdleConfig;
 import org.apache.druid.indexing.seekablestream.supervisor.SeekableStreamSupervisor;
 import org.apache.druid.indexing.seekablestream.supervisor.SeekableStreamSupervisorSpec;
@@ -5517,7 +5518,7 @@ public class KafkaSupervisorTest extends EasyMockSupport
         null,
         true,
         null,
-        new org.apache.druid.indexing.seekablestream.supervisor.BoundedStreamConfig(startOffsets, endOffsets)
+        new BoundedStreamConfig(startOffsets, endOffsets)
     );
 
     Assert.assertTrue(kafkaSupervisorIOConfig.isBounded());
