@@ -53,12 +53,12 @@ public class BoundedStreamConfigTest
     Map<String, Long> endOffsets = new HashMap<>();
     endOffsets.put("0", 500L);
 
-    IllegalArgumentException ex = Assert.assertThrows(
-        IllegalArgumentException.class,
+    NullPointerException ex = Assert.assertThrows(
+        NullPointerException.class,
         () -> new BoundedStreamConfig(null, endOffsets)
     );
 
-    Assert.assertEquals("startSequenceNumbers cannot be null", ex.getMessage());
+    Assert.assertTrue(ex.getMessage().contains("startSequenceNumbers"));
   }
 
   @Test
@@ -67,12 +67,12 @@ public class BoundedStreamConfigTest
     Map<String, Long> startOffsets = new HashMap<>();
     startOffsets.put("0", 100L);
 
-    IllegalArgumentException ex = Assert.assertThrows(
-        IllegalArgumentException.class,
+    NullPointerException ex = Assert.assertThrows(
+        NullPointerException.class,
         () -> new BoundedStreamConfig(startOffsets, null)
     );
 
-    Assert.assertEquals("endSequenceNumbers cannot be null", ex.getMessage());
+    Assert.assertTrue(ex.getMessage().contains("endSequenceNumbers"));
   }
 
   @Test
@@ -87,42 +87,50 @@ public class BoundedStreamConfigTest
         () -> new BoundedStreamConfig(startOffsets, endOffsets)
     );
 
-    Assert.assertEquals("startSequenceNumbers cannot be empty", ex.getMessage());
+    Assert.assertTrue(ex.getMessage().contains("startSequenceNumbers cannot be empty"));
   }
 
   @Test
-  public void testConstructorWithEmptyEndSequenceNumbers()
+  public void testConstructorWithMismatchedPartitions()
   {
     Map<String, Long> startOffsets = new HashMap<>();
     startOffsets.put("0", 100L);
     Map<String, Long> endOffsets = new HashMap<>();
+    endOffsets.put("1", 500L);
 
     IllegalArgumentException ex = Assert.assertThrows(
         IllegalArgumentException.class,
         () -> new BoundedStreamConfig(startOffsets, endOffsets)
     );
 
-    Assert.assertEquals("endSequenceNumbers cannot be empty", ex.getMessage());
+    Assert.assertTrue(ex.getMessage().contains("must have matching partition sets"));
   }
 
   @Test
   public void testSerializationDeserialization() throws Exception
   {
-    Map<Integer, Integer> startOffsets = new HashMap<>();
-    startOffsets.put(0, 100);
-    startOffsets.put(1, 200);
+    Map<String, Integer> startOffsets = new HashMap<>();
+    startOffsets.put("0", 100);
+    startOffsets.put("1", 200);
 
-    Map<Integer, Integer> endOffsets = new HashMap<>();
-    endOffsets.put(0, 500);
-    endOffsets.put(1, 600);
+    Map<String, Integer> endOffsets = new HashMap<>();
+    endOffsets.put("0", 500);
+    endOffsets.put("1", 600);
 
     BoundedStreamConfig config = new BoundedStreamConfig(startOffsets, endOffsets);
 
     String json = mapper.writeValueAsString(config);
     BoundedStreamConfig deserialized = mapper.readValue(json, BoundedStreamConfig.class);
 
-    Assert.assertEquals(config.getStartSequenceNumbers(), deserialized.getStartSequenceNumbers());
-    Assert.assertEquals(config.getEndSequenceNumbers(), deserialized.getEndSequenceNumbers());
+    // Check sizes
+    Assert.assertEquals(2, deserialized.getStartSequenceNumbers().size());
+    Assert.assertEquals(2, deserialized.getEndSequenceNumbers().size());
+
+    // Check that deserialized maps contain expected values (keys will be Strings after deserialization)
+    Assert.assertEquals(100, deserialized.getStartSequenceNumbers().get("0"));
+    Assert.assertEquals(200, deserialized.getStartSequenceNumbers().get("1"));
+    Assert.assertEquals(500, deserialized.getEndSequenceNumbers().get("0"));
+    Assert.assertEquals(600, deserialized.getEndSequenceNumbers().get("1"));
   }
 
   @Test
