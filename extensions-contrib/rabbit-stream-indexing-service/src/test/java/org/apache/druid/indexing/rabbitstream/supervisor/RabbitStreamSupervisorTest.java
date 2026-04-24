@@ -42,6 +42,7 @@ import org.apache.druid.indexing.rabbitstream.RabbitStreamRecordSupplier;
 import org.apache.druid.indexing.seekablestream.SeekableStreamIndexTask;
 import org.apache.druid.indexing.seekablestream.SeekableStreamIndexTaskClient;
 import org.apache.druid.indexing.seekablestream.SeekableStreamIndexTaskIOConfig;
+import org.apache.druid.indexing.seekablestream.supervisor.BoundedStreamConfig;
 import org.apache.druid.indexing.seekablestream.supervisor.SeekableStreamSupervisorReportPayload;
 import org.apache.druid.java.util.common.granularity.Granularities;
 import org.apache.druid.java.util.common.parsers.JSONPathSpec;
@@ -463,5 +464,45 @@ public class RabbitStreamSupervisorTest extends EasyMockSupport
     EasyMock.replay(differentTaskType);
 
     Assert.assertFalse(supervisor.doesTaskMatchSupervisor(differentTaskType));
+  }
+
+  @Test
+  public void testBoundedModeConfiguration()
+  {
+    ImmutableMap<String, Integer> startOffsets = ImmutableMap.of(
+        "queue-0", 100,
+        "queue-1", 200
+    );
+    ImmutableMap<String, Integer> endOffsets = ImmutableMap.of(
+        "queue-0", 500,
+        "queue-1", 600
+    );
+
+    final RabbitStreamSupervisorIOConfig rabbitSupervisorIOConfig = new RabbitStreamSupervisorIOConfig(
+        STREAM,
+        URI,
+        INPUT_FORMAT,
+        1,
+        1,
+        new Period("PT1H"),
+        null,
+        null,
+        null,
+        new Period("PT30M"),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1000,
+        null,
+        new BoundedStreamConfig(startOffsets, endOffsets)
+    );
+
+    Assert.assertTrue(rabbitSupervisorIOConfig.isBounded());
+    Assert.assertNotNull(rabbitSupervisorIOConfig.getBoundedStreamConfig());
+    Assert.assertEquals(2, rabbitSupervisorIOConfig.getBoundedStreamConfig().getStartSequenceNumbers().size());
+    Assert.assertEquals(2, rabbitSupervisorIOConfig.getBoundedStreamConfig().getEndSequenceNumbers().size());
   }
 }

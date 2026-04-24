@@ -5477,6 +5477,98 @@ public class KafkaSupervisorTest extends EasyMockSupport
     Assert.assertEquals(List.of(20, 20), supervisor.computeUnassignedServerPriorities(taskGroup3, 2));
   }
 
+  @Test
+  public void testBoundedModeCreateTasksWithCorrectOffsets() throws JsonProcessingException
+  {
+    Map<String, Object> startOffsets = ImmutableMap.of(
+        topic + ":0", 100,
+        topic + ":1", 200,
+        topic + ":2", 300
+    );
+    Map<String, Object> endOffsets = ImmutableMap.of(
+        topic + ":0", 500,
+        topic + ":1", 600,
+        topic + ":2", 700
+    );
+
+    final Map<String, Object> consumerProperties = KafkaConsumerConfigs.getConsumerProperties();
+    consumerProperties.put("bootstrap.servers", kafkaHost);
+
+    final KafkaSupervisorIOConfig kafkaSupervisorIOConfig = new KafkaSupervisorIOConfig(
+        topic,
+        null,
+        INPUT_FORMAT,
+        1,
+        1,
+        new Period("PT1H"),
+        consumerProperties,
+        null,
+        null,
+        KafkaSupervisorIOConfig.DEFAULT_POLL_TIMEOUT_MILLIS,
+        new Period("P1D"),
+        new Period("PT30S"),
+        false,
+        new Period("PT30M"),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        true,
+        null,
+        new org.apache.druid.indexing.seekablestream.supervisor.BoundedStreamConfig(startOffsets, endOffsets)
+    );
+
+    Assert.assertTrue(kafkaSupervisorIOConfig.isBounded());
+
+    final KafkaIndexTaskClientFactory taskClientFactory = new KafkaIndexTaskClientFactory(null, null);
+    final KafkaSupervisorSpec spec = new KafkaSupervisorSpec(
+        null,
+        null,
+        dataSchema,
+        KafkaSupervisorTuningConfig.defaultConfig(),
+        kafkaSupervisorIOConfig,
+        null,
+        false,
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        taskClientFactory,
+        OBJECT_MAPPER,
+        new NoopServiceEmitter(),
+        new DruidMonitorSchedulerConfig(),
+        rowIngestionMetersFactory,
+        new SupervisorStateManagerConfig()
+    );
+
+    supervisor = new TestableKafkaSupervisor(
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        taskClientFactory,
+        OBJECT_MAPPER,
+        spec,
+        rowIngestionMetersFactory
+    );
+
+    // Test type conversion methods
+    KafkaTopicPartition partition0 = supervisor.createPartitionIdFromString(topic + ":0");
+    Assert.assertEquals(topic, partition0.topic());
+    Assert.assertEquals(0, partition0.partition());
+
+    Long offset = supervisor.createSequenceOffsetFromObject(100);
+    Assert.assertEquals(Long.valueOf(100L), offset);
+
+    offset = supervisor.createSequenceOffsetFromObject("200");
+    Assert.assertEquals(Long.valueOf(200L), offset);
+
+    // Test offset comparison
+    Assert.assertTrue(supervisor.isOffsetAtOrBeyond(500L, 100L));
+    Assert.assertTrue(supervisor.isOffsetAtOrBeyond(100L, 100L));
+    Assert.assertFalse(supervisor.isOffsetAtOrBeyond(50L, 100L));
+  }
+
   private void addSomeEvents(int numEventsPerPartition) throws Exception
   {
     // create topic manually

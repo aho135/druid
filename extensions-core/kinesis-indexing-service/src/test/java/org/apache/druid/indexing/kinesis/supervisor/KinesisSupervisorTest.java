@@ -65,6 +65,7 @@ import org.apache.druid.indexing.seekablestream.SeekableStreamIndexTaskTuningCon
 import org.apache.druid.indexing.seekablestream.SeekableStreamStartSequenceNumbers;
 import org.apache.druid.indexing.seekablestream.common.RecordSupplier;
 import org.apache.druid.indexing.seekablestream.common.StreamPartition;
+import org.apache.druid.indexing.seekablestream.supervisor.BoundedStreamConfig;
 import org.apache.druid.indexing.seekablestream.supervisor.SeekableStreamSupervisorStateManager;
 import org.apache.druid.indexing.seekablestream.supervisor.SeekableStreamSupervisorTuningConfig;
 import org.apache.druid.indexing.seekablestream.supervisor.TaskReportData;
@@ -4730,6 +4731,100 @@ public class KinesisSupervisorTest extends EasyMockSupport
     EasyMock.replay(differentTaskType);
 
     Assert.assertFalse(supervisor.doesTaskMatchSupervisor(differentTaskType));
+  }
+
+  @Test
+  public void testBoundedModeCreateTasksWithCorrectOffsets()
+  {
+    Map<String, Object> startOffsets = ImmutableMap.of(
+        "shardId-000000000000", "49590338271490256608559692538361571095921575989136588898",
+        "shardId-000000000001", "49590338271512257353759162668991891722121171891717232706"
+    );
+    Map<String, Object> endOffsets = ImmutableMap.of(
+        "shardId-000000000000", "49590338271534258098958632799622211348320767794297876514",
+        "shardId-000000000001", "49590338271556258844158102930252531974520363696878520322"
+    );
+    final KinesisSupervisorIOConfig kinesisSupervisorIOConfig = new KinesisSupervisorIOConfig(
+        STREAM,
+        INPUT_FORMAT,
+        "awsEndpoint",
+        null,
+        1,
+        1,
+        new Period("PT30S"),
+        null,
+        new Period("PT30M"),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        0,
+        null,
+        null,
+        null,
+        true,
+        null,
+        new BoundedStreamConfig(startOffsets, endOffsets)
+    );
+
+    Assert.assertTrue(kinesisSupervisorIOConfig.isBounded());
+
+    final KinesisIndexTaskClientFactory taskClientFactory = new KinesisIndexTaskClientFactory(null, null);
+    final KinesisSupervisorSpec spec = new KinesisSupervisorSpec(
+        null,
+        null,
+        dataSchema,
+        KinesisSupervisorTuningConfig.defaultConfig(),
+        kinesisSupervisorIOConfig,
+        null,
+        false,
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        taskClientFactory,
+        OBJECT_MAPPER,
+        new NoopServiceEmitter(),
+        new DruidMonitorSchedulerConfig(),
+        rowIngestionMetersFactory,
+        null,
+        new SupervisorStateManagerConfig()
+    );
+
+    supervisor = new TestableKinesisSupervisor(
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        taskClientFactory,
+        OBJECT_MAPPER,
+        spec,
+        rowIngestionMetersFactory
+    );
+
+    // Test type conversion methods
+    String shardId = supervisor.createPartitionIdFromString("shardId-000000000000");
+    Assert.assertEquals("shardId-000000000000", shardId);
+
+    String offset = supervisor.createSequenceOffsetFromObject("49590338271490256608559692538361571095921575989136588898");
+    Assert.assertEquals("49590338271490256608559692538361571095921575989136588898", offset);
+
+    offset = supervisor.createSequenceOffsetFromObject(100);
+    Assert.assertEquals("100", offset);
+
+    // Test offset comparison (lexicographic)
+    Assert.assertTrue(supervisor.isOffsetAtOrBeyond(
+        "49590338271512257353759162668991891722121171891717232706",
+        "49590338271490256608559692538361571095921575989136588898"
+    ));
+    Assert.assertTrue(supervisor.isOffsetAtOrBeyond(
+        "49590338271490256608559692538361571095921575989136588898",
+        "49590338271490256608559692538361571095921575989136588898"
+    ));
+    Assert.assertFalse(supervisor.isOffsetAtOrBeyond(
+        "49590338271490256608559692538361571095921575989136588898",
+        "49590338271512257353759162668991891722121171891717232706"
+    ));
   }
 
   private List<Task> testShardMergePhaseOne() throws Exception
