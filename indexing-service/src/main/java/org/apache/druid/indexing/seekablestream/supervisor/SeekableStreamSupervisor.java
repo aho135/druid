@@ -4484,8 +4484,39 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
   private boolean hasTaskGroupReachedBoundedEnd(int groupId)
   {
     BoundedStreamConfig boundedConfig = ioConfig.getBoundedStreamConfig();
+    Map<PartitionIdType, SequenceOffsetType> startOffsets =
+        convertBoundedConfigMap(boundedConfig.getStartSequenceNumbers());
     Map<PartitionIdType, SequenceOffsetType> endOffsets =
         convertBoundedConfigMap(boundedConfig.getEndSequenceNumbers());
+
+    Set<PartitionIdType> partitionsInGroup = partitionGroups.get(groupId);
+    if (partitionsInGroup == null || partitionsInGroup.isEmpty()) {
+      return false;
+    }
+
+    // Check if start >= end for all partitions (empty range)
+    // If so, there's no work to do - treat as already complete
+    boolean allPartitionsEmptyRange = true;
+    for (PartitionIdType partition : partitionsInGroup) {
+      SequenceOffsetType start = startOffsets.get(partition);
+      SequenceOffsetType end = endOffsets.get(partition);
+      if (!isOffsetAtOrBeyond(start, end)) {
+        allPartitionsEmptyRange = false;
+        break;
+      }
+    }
+
+    if (allPartitionsEmptyRange) {
+      log.warn(
+          "TaskGroup[%d] has empty range for all partitions (start >= end). "
+          + "No work to do, marking as complete. Start: %s, End: %s",
+          groupId,
+          startOffsets,
+          endOffsets
+      );
+      return true;
+    }
+
     Map<PartitionIdType, SequenceOffsetType> currentOffsets = getOffsetsFromMetadataStorage();
 
     log.info(
@@ -4498,11 +4529,6 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
     if (currentOffsets == null || currentOffsets.isEmpty()) {
       log.debug("No checkpointed offsets found, taskGroup[%d] has not completed", groupId);
       return false; // No progress yet, task hasn't completed
-    }
-
-    Set<PartitionIdType> partitionsInGroup = partitionGroups.get(groupId);
-    if (partitionsInGroup == null || partitionsInGroup.isEmpty()) {
-      return false;
     }
 
     // Check if ALL partitions in this group have reached their end offsets
