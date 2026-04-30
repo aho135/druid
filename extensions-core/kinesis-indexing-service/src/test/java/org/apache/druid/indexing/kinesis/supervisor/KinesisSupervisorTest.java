@@ -4812,7 +4812,6 @@ public class KinesisSupervisorTest extends EasyMockSupport
     offset = supervisor.createSequenceOffsetFromObject(100);
     Assert.assertEquals("100", offset);
 
-    // Test offset comparison (lexicographic)
     Assert.assertTrue(supervisor.isOffsetAtOrBeyond(
         "49590338271512257353759162668991891722121171891717232706",
         "49590338271490256608559692538361571095921575989136588898"
