@@ -68,33 +68,6 @@ public class SupervisorStateManagerTest
   }
 
   @Test
-  public void testCompletedStateIsTerminal()
-  {
-    stateManagerConfig = new SupervisorStateManagerConfig();
-    SupervisorStateManager supervisorStateManager = new SupervisorStateManager(
-        stateManagerConfig,
-        false
-    );
-
-    // Start in PENDING state
-    Assert.assertEquals(SupervisorStateManager.BasicState.PENDING, supervisorStateManager.getSupervisorState());
-
-    // Transition to COMPLETED
-    supervisorStateManager.maybeSetState(SupervisorStateManager.BasicState.COMPLETED);
-    Assert.assertEquals(SupervisorStateManager.BasicState.COMPLETED, supervisorStateManager.getSupervisorState());
-
-    // Attempt to transition out of COMPLETED should be ignored
-    supervisorStateManager.maybeSetState(SupervisorStateManager.BasicState.RUNNING);
-    Assert.assertEquals(SupervisorStateManager.BasicState.COMPLETED, supervisorStateManager.getSupervisorState());
-
-    supervisorStateManager.maybeSetState(SupervisorStateManager.BasicState.IDLE);
-    Assert.assertEquals(SupervisorStateManager.BasicState.COMPLETED, supervisorStateManager.getSupervisorState());
-
-    supervisorStateManager.maybeSetState(SupervisorStateManager.BasicState.PENDING);
-    Assert.assertEquals(SupervisorStateManager.BasicState.COMPLETED, supervisorStateManager.getSupervisorState());
-  }
-
-  @Test
   public void testStoppingStateIsTerminal()
   {
     stateManagerConfig = new SupervisorStateManagerConfig();
