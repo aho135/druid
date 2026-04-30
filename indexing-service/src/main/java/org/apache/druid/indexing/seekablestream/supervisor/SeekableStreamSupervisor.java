@@ -1386,13 +1386,7 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
 
         // Initialize bounded partitions BEFORE first run
         if (ioConfig.isBounded()) {
-          try {
-            initializeBoundedPartitionGroups();
-          }
-          catch (Exception e) {
-            log.error(e, "Failed to initialize bounded partition groups");
-            throw new RuntimeException(e);
-          }
+          initializeBoundedPartitionGroups();
         }
 
         exec.submit(
@@ -1855,6 +1849,10 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
   public void runInternal()
   {
     try {
+      if (isBoundedWorkComplete()) {
+        handleBoundedCompletion();
+        return;
+      }
       possiblyRegisterListener();
 
       stateManager.maybeSetState(SeekableStreamSupervisorStateManager.SeekableStreamState.CONNECTING_TO_STREAM);
@@ -1897,12 +1895,6 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
           log.debug("Supervisor[%s] for datasource[%s] is suspended.", supervisorId, dataSource);
           gracefulShutdownInternal();
         }
-      }
-
-      // Check for bounded completion after tasks have been created/managed
-      if (isBoundedWorkComplete()) {
-        handleBoundedCompletion();
-        return;
       }
 
       logDebugReport();
@@ -1995,6 +1987,10 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
       activelyReadingTaskGroups.clear();
       partitionGroups.clear();
       partitionOffsets.clear();
+      if (ioConfig.isBounded()) {
+        initializeBoundedPartitionGroups();
+        stateManager.maybeSetState(SupervisorStateManager.BasicState.RUNNING);
+      }
     } else {
       if (!checkSourceMetadataMatch(dataSourceMetadata)) {
         throw new IAE(
@@ -2098,9 +2094,9 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
   /**
    * Reset offsets with the data source metadata. If checkpoints exist, the resulting stored offsets will be a union of
    * existing checkpointed offsets and provided offsets; any checkpointed offsets not specified in the metadata will be
-   * preserved as-is. If checkpoints don't exist, the provided reset datasource metdadata will be inserted into
+   * preserved as-is. If checkpoints don't exist, the provided reset datasource metadata will be inserted into
    * the metadata storage. Once the offsets are reset, any active tasks serving the partition offsets will be restarted.
-   * @param dataSourceMetadata Required reset data source metdata. Assumed that the metadata is validated.
+   * @param dataSourceMetadata Required reset data source metadata. Assumed that the metadata is validated.
    */
   public void resetOffsetsInternal(@Nonnull final DataSourceMetadata dataSourceMetadata)
   {

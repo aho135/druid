@@ -123,18 +123,14 @@ public class SupervisorStateManager
   /**
    * Certain states are only valid if the supervisor hasn't had a successful iteration. This method checks if there's
    * been at least one successful iteration, and if applicable, sets supervisor state to an appropriate new state.
-   * STOPPING and COMPLETED are terminal states that cannot transition to any other state.
+   * A STOPPING supervisor cannot transition to any other state as this state is final.
    * This method must be thread-safe as multiple threads trying to update may lead to an invalid state.
    */
   public synchronized void maybeSetState(State proposedState)
   {
-    // Terminal states (STOPPING, COMPLETED) take precedence over all other states
-    if (BasicState.STOPPING.equals(this.supervisorState) || BasicState.COMPLETED.equals(this.supervisorState)) {
-      // Already in a terminal state, cannot transition
-      return;
-    } else if (BasicState.STOPPING.equals(proposedState) || BasicState.COMPLETED.equals(proposedState)) {
-      // Transitioning to a terminal state
-      supervisorState = proposedState;
+    if (BasicState.STOPPING.equals(this.supervisorState) || BasicState.STOPPING.equals(proposedState)) {
+      // STOPPING takes precedence over all other states
+      supervisorState = BasicState.STOPPING;
       return;
     }
 
@@ -204,11 +200,11 @@ public class SupervisorStateManager
     consecutiveSuccessfulRuns = currentRunSuccessful ? consecutiveSuccessfulRuns + 1 : 0;
     consecutiveFailedRuns = currentRunSuccessful ? 0 : consecutiveFailedRuns + 1;
 
-    // If the supervisor is not IDLE, try to set the state to RUNNING or SUSPENDED.
+    // If the supervisor is not IDLE or COMPLETED, try to set the state to RUNNING or SUSPENDED.
     // This will be rejected if we haven't had atLeastOneSuccessfulRun
     // (in favor of the more specific states for the initial run) and will instead trigger setting the state to an
     // unhealthy one if we are now over the error thresholds.
-    if (!isIdle()) {
+    if (!isIdle() && !isCompleted()) {
       maybeSetState(healthySteadyState);
     }
     // reset for next run
@@ -243,6 +239,11 @@ public class SupervisorStateManager
   public boolean isIdle()
   {
     return SupervisorStateManager.BasicState.IDLE.equals(supervisorState);
+  }
+
+  public boolean isCompleted()
+  {
+    return SupervisorStateManager.BasicState.COMPLETED.equals(supervisorState);
   }
 
   protected Deque<ExceptionEvent> getRecentEventsQueue()
