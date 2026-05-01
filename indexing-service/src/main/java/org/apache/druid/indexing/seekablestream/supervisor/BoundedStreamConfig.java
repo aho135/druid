@@ -21,7 +21,7 @@ package org.apache.druid.indexing.seekablestream.supervisor;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
+import org.apache.druid.error.DruidException;
 
 import java.util.Map;
 
@@ -50,21 +50,25 @@ public class BoundedStreamConfig
       @JsonProperty("endSequenceNumbers") Map<?, ?> endSequenceNumbers
   )
   {
-    this.startSequenceNumbers = Preconditions.checkNotNull(startSequenceNumbers, "startSequenceNumbers");
-    this.endSequenceNumbers = Preconditions.checkNotNull(endSequenceNumbers, "endSequenceNumbers");
+    if (startSequenceNumbers == null || startSequenceNumbers.isEmpty() ||
+        endSequenceNumbers == null || endSequenceNumbers.isEmpty()) {
+      throw DruidException.forPersona(DruidException.Persona.ADMIN)
+                          .ofCategory(DruidException.Category.INVALID_INPUT)
+                          .build("startSequenceNumbers and endSequenceNumbers cannot be null or empty");
+    }
 
-    // Validation
-    Preconditions.checkArgument(
-        !startSequenceNumbers.isEmpty(),
-        "startSequenceNumbers cannot be empty"
-    );
+    if (!startSequenceNumbers.keySet().equals(endSequenceNumbers.keySet())) {
+      throw DruidException.forPersona(DruidException.Persona.ADMIN)
+                          .ofCategory(DruidException.Category.INVALID_INPUT)
+                          .build(
+                              "startSequenceNumbers and endSequenceNumbers must have matching partition sets. Start: %s, End: %s",
+                              startSequenceNumbers.keySet(),
+                              endSequenceNumbers.keySet()
+                          );
+    }
 
-    Preconditions.checkArgument(
-        startSequenceNumbers.keySet().equals(endSequenceNumbers.keySet()),
-        "startSequenceNumbers and endSequenceNumbers must have matching partition sets. Start: %s, End: %s",
-        startSequenceNumbers.keySet(),
-        endSequenceNumbers.keySet()
-    );
+    this.startSequenceNumbers = startSequenceNumbers;
+    this.endSequenceNumbers = endSequenceNumbers;
   }
 
   @JsonProperty

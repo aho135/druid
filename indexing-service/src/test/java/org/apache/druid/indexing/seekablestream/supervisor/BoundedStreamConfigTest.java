@@ -20,6 +20,7 @@
 package org.apache.druid.indexing.seekablestream.supervisor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.druid.error.DruidException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -53,12 +54,12 @@ public class BoundedStreamConfigTest
     Map<String, Long> endOffsets = new HashMap<>();
     endOffsets.put("0", 500L);
 
-    NullPointerException ex = Assert.assertThrows(
-        NullPointerException.class,
+    DruidException ex = Assert.assertThrows(
+        DruidException.class,
         () -> new BoundedStreamConfig(null, endOffsets)
     );
 
-    Assert.assertTrue(ex.getMessage().contains("startSequenceNumbers"));
+    Assert.assertTrue(ex.getMessage().contains("cannot be null or empty"));
   }
 
   @Test
@@ -67,12 +68,12 @@ public class BoundedStreamConfigTest
     Map<String, Long> startOffsets = new HashMap<>();
     startOffsets.put("0", 100L);
 
-    NullPointerException ex = Assert.assertThrows(
-        NullPointerException.class,
+    DruidException ex = Assert.assertThrows(
+        DruidException.class,
         () -> new BoundedStreamConfig(startOffsets, null)
     );
 
-    Assert.assertTrue(ex.getMessage().contains("endSequenceNumbers"));
+    Assert.assertTrue(ex.getMessage().contains("cannot be null or empty"));
   }
 
   @Test
@@ -82,12 +83,27 @@ public class BoundedStreamConfigTest
     Map<String, Long> endOffsets = new HashMap<>();
     endOffsets.put("0", 500L);
 
-    IllegalArgumentException ex = Assert.assertThrows(
-        IllegalArgumentException.class,
+    DruidException ex = Assert.assertThrows(
+        DruidException.class,
         () -> new BoundedStreamConfig(startOffsets, endOffsets)
     );
 
-    Assert.assertTrue(ex.getMessage().contains("startSequenceNumbers cannot be empty"));
+    Assert.assertTrue(ex.getMessage().contains("cannot be null or empty"));
+  }
+
+  @Test
+  public void testConstructorWithEmptyEndSequenceNumbers()
+  {
+    Map<String, Long> startOffsets = new HashMap<>();
+    startOffsets.put("0", 100L);
+    Map<String, Long> endOffsets = new HashMap<>();
+
+    DruidException ex = Assert.assertThrows(
+        DruidException.class,
+        () -> new BoundedStreamConfig(startOffsets, endOffsets)
+    );
+
+    Assert.assertTrue(ex.getMessage().contains("cannot be null or empty"));
   }
 
   @Test
@@ -98,8 +114,8 @@ public class BoundedStreamConfigTest
     Map<String, Long> endOffsets = new HashMap<>();
     endOffsets.put("1", 500L);
 
-    IllegalArgumentException ex = Assert.assertThrows(
-        IllegalArgumentException.class,
+    DruidException ex = Assert.assertThrows(
+        DruidException.class,
         () -> new BoundedStreamConfig(startOffsets, endOffsets)
     );
 
