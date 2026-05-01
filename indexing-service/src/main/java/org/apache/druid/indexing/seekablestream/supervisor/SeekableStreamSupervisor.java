@@ -4610,20 +4610,10 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
   }
 
   /**
-   * Check if all bounded tasks have completed.
-   * Called after createNewTasks() in runInternal to ensure tasks have been created first.
-   *
    * For bounded supervisors, we determine completion by checking if new tasks would be created.
    * In createNewTasks(), bounded mode checks hasTaskGroupReachedBoundedEnd() before creating tasks.
    * If that returns true (offsets reached), no new tasks are created.
-   *
    * So completion is: no active tasks, no pending tasks, and createNewTasks() chose not to create any.
-   * This is indicated by empty task groups after createNewTasks() has run.
-   *
-   * We do NOT separately check metadata storage here because:
-   * 1. Metadata may contain stale offsets from previous supervisor runs
-   * 2. createNewTasks() already does the offset checking logic
-   * 3. If tasks were killed/failed and work is incomplete, createNewTasks() will recreate them
    *
    * @return true if all bounded work is complete, false otherwise
    */
@@ -4640,13 +4630,6 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
     if (!noActiveTasks || !noPendingTasks) {
       return false;
     }
-
-    // At this point, no tasks are running. Since createNewTasks() already ran,
-    // if tasks aren't running it means either:
-    // A) Tasks completed successfully and offset targets were reached (don't recreate)
-    // B) Tasks failed/killed and haven't reached targets (will recreate next run)
-    //
-    // To distinguish, we check if createNewTasks() would create new tasks.
     // If hasTaskGroupReachedBoundedEnd() returns false for any group, createNewTasks()
     // will create tasks next iteration, so we're not complete.
     for (Integer groupId : partitionGroups.keySet()) {
@@ -4656,8 +4639,6 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
       }
     }
 
-    // All groups have reached their end offsets and no tasks are running.
-    // Work is complete!
     log.info("All bounded tasks completed for supervisor[%s]", supervisorId);
     return true;
   }
