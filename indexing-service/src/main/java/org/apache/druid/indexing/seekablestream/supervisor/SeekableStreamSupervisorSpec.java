@@ -262,42 +262,6 @@ public abstract class SeekableStreamSupervisorSpec implements SupervisorSpec
     if (!this.getSource().equals(other.getSource())) {
       throw InvalidInput.exception(ILLEGAL_INPUT_SOURCE_UPDATE_ERROR_MESSAGE, this.getSource(), other.getSource());
     }
-
-    // Validate bounded stream configuration
-    validateBoundedStreamConfig(other);
-  }
-
-  /**
-   * Validates bounded stream configuration for the supervisor spec.
-   *
-   * @param spec the supervisor spec to validate
-   * @throws DruidException if the bounded stream configuration is invalid
-   */
-  protected void validateBoundedStreamConfig(SeekableStreamSupervisorSpec spec) throws DruidException
-  {
-    SeekableStreamSupervisorIOConfig ioConfig = spec.getIoConfig();
-
-    if (ioConfig.isBounded()) {
-      // Validate partition consistency
-      BoundedStreamConfig boundedConfig = ioConfig.getBoundedStreamConfig();
-      if (!boundedConfig.getStartSequenceNumbers().keySet().equals(boundedConfig.getEndSequenceNumbers().keySet())) {
-        throw InvalidInput.exception(
-            "Bounded stream config has mismatched partitions. Start: %s, End: %s",
-            boundedConfig.getStartSequenceNumbers().keySet(),
-            boundedConfig.getEndSequenceNumbers().keySet()
-        );
-      }
-
-      // Warn if useConcurrentLocks is not enabled
-      Map<String, Object> context = spec.getContext();
-      if (context == null || !Boolean.TRUE.equals(context.get("useConcurrentLocks"))) {
-        log.warn(
-            "Bounded stream processing without 'useConcurrentLocks=true' may fail " +
-            "if other supervisors are running or segments already exist for these intervals. " +
-            "Consider setting useConcurrentLocks=true in the supervisor context."
-        );
-      }
-    }
   }
 
   @Override
