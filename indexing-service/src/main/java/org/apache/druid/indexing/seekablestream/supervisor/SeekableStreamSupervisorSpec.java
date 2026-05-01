@@ -37,7 +37,6 @@ import org.apache.druid.indexing.overlord.supervisor.autoscaler.SupervisorTaskAu
 import org.apache.druid.indexing.seekablestream.SeekableStreamIndexTaskClientFactory;
 import org.apache.druid.indexing.seekablestream.supervisor.autoscaler.AutoScalerConfig;
 import org.apache.druid.indexing.seekablestream.supervisor.autoscaler.NoopTaskAutoScaler;
-import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.metrics.DruidMonitorSchedulerConfig;
 import org.apache.druid.segment.incremental.RowIngestionMetersFactory;
@@ -50,7 +49,6 @@ import java.util.Map;
 
 public abstract class SeekableStreamSupervisorSpec implements SupervisorSpec
 {
-  private static final Logger log = new Logger(SeekableStreamSupervisorSpec.class);
 
   protected static final String ILLEGAL_INPUT_SOURCE_UPDATE_ERROR_MESSAGE =
       "Update of the input source stream from [%s] to [%s] is not supported for a running supervisor."
