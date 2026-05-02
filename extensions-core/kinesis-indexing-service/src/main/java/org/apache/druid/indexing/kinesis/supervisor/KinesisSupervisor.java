@@ -135,6 +135,9 @@ public class KinesisSupervisor extends SeekableStreamSupervisor<String, String, 
     return new KinesisIndexTaskIOConfig(
         groupId,
         baseSequenceName,
+        null,
+        null,
+        null,
         new SeekableStreamStartSequenceNumbers<>(
             ioConfig.getStream(),
             startPartitions,
@@ -149,7 +152,8 @@ public class KinesisSupervisor extends SeekableStreamSupervisor<String, String, 
         ioConfig.getFetchDelayMillis(),
         ioConfig.getAwsAssumedRoleArn(),
         ioConfig.getAwsExternalId(),
-        ioConfig.getTaskDuration().getStandardMinutes()
+        ioConfig.getTaskDuration().getStandardMinutes(),
+        ioConfig.getBoundedStreamConfig()  // Pass through bounded config
     );
   }
 

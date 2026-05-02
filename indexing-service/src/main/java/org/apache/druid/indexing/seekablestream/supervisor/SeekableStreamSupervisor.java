@@ -4303,12 +4303,21 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
         continue;
       }
 
-      if (ioConfig.getReplicas() > taskGroup.tasks.size()) {
+      // Count both actively reading tasks and pending completion tasks for this group
+      int totalTasksForGroup = taskGroup.tasks.size();
+      CopyOnWriteArrayList<TaskGroup> pendingCompletionGroups = pendingCompletionTaskGroups.get(groupId);
+      if (pendingCompletionGroups != null) {
+        for (TaskGroup pendingGroup : pendingCompletionGroups) {
+          totalTasksForGroup += pendingGroup.tasks.size();
+        }
+      }
+
+      if (ioConfig.getReplicas() > totalTasksForGroup) {
         log.info(
             "Number of tasks[%d] does not match configured numReplicas[%d] in taskGroup[%d], creating more tasks.",
-            taskGroup.tasks.size(), ioConfig.getReplicas(), groupId
+            totalTasksForGroup, ioConfig.getReplicas(), groupId
         );
-        createTasksForGroup(groupId, ioConfig.getReplicas() - taskGroup.tasks.size());
+        createTasksForGroup(groupId, ioConfig.getReplicas() - totalTasksForGroup);
         createdTask = true;
       }
     }
@@ -4346,9 +4355,11 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
   )
   {
     // Existing logic for both streaming and bounded mode
-    // Bounded mode will fall back to bounded start offsets in getOffsetFromStorageForPartition()
     ImmutableMap.Builder<PartitionIdType, OrderedSequenceNumber<SequenceOffsetType>> builder = ImmutableMap.builder();
+    final DataSourceMetadata dataSourceMetadata = retrieveDataSourceMetadata();
     final Map<PartitionIdType, SequenceOffsetType> metadataOffsets = getOffsetsFromMetadataStorage();
+    final BoundedStreamConfig metadataBoundedConfig = getBoundedConfigFromMetadata(dataSourceMetadata);
+
     for (PartitionIdType partitionId : partitionGroups.get(groupId)) {
       SequenceOffsetType sequence = partitionOffsets.get(partitionId);
 
@@ -4362,7 +4373,8 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
         // get the sequence from metadata storage (if available) or Kafka/Kinesis (otherwise)
         OrderedSequenceNumber<SequenceOffsetType> offsetFromStorage = getOffsetFromStorageForPartition(
             partitionId,
-            metadataOffsets
+            metadataOffsets,
+            metadataBoundedConfig
         );
 
         if (offsetFromStorage != null) {
@@ -4374,17 +4386,50 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
   }
 
   /**
+   * Extracts BoundedStreamConfig from DataSourceMetadata if available.
+   */
+  @Nullable
+  private BoundedStreamConfig getBoundedConfigFromMetadata(@Nullable DataSourceMetadata metadata)
+  {
+    if (metadata instanceof SeekableStreamDataSourceMetadata) {
+      return ((SeekableStreamDataSourceMetadata<?, ?>) metadata).getBoundedStreamConfig();
+    }
+    return null;
+  }
+
+  /**
    * Queries the dataSource metadata table to see if there is a previous ending sequence for this partition. If it
    * doesn't find any data, it will retrieve the latest or earliest Kafka/Kinesis sequence depending on the
    * {@link SeekableStreamSupervisorIOConfig#useEarliestSequenceNumber}.
    */
   private OrderedSequenceNumber<SequenceOffsetType> getOffsetFromStorageForPartition(
       PartitionIdType partition,
-      final Map<PartitionIdType, SequenceOffsetType> metadataOffsets
+      final Map<PartitionIdType, SequenceOffsetType> metadataOffsets,
+      @Nullable final BoundedStreamConfig metadataBoundedConfig
   )
   {
     SequenceOffsetType sequence = metadataOffsets.get(partition);
     if (sequence != null) {
+      // In bounded mode, check if the metadata's bounded config matches the current supervisor's config
+      if (ioConfig.isBounded()) {
+        BoundedStreamConfig currentBoundedConfig = ioConfig.getBoundedStreamConfig();
+
+        // If configs don't match (or metadata has no config), throw exception
+        if (!currentBoundedConfig.equals(metadataBoundedConfig)) {
+          throw DruidException.forPersona(DruidException.Persona.ADMIN)
+                              .ofCategory(DruidException.Category.INVALID_INPUT)
+                              .build(
+                                  "Bounded supervisor detected existing metadata from a different run. "
+                                  + "Metadata bounded config [%s] does not match current config [%s]. "
+                                  + "To start a new bounded ingestion, either: "
+                                  + "(1) use the supervisor reset API to clear existing metadata, or "
+                                  + "(2) use a different supervisor ID / datasource.",
+                                  metadataBoundedConfig,
+                                  currentBoundedConfig
+                              );
+        }
+      }
+
       log.debug("Getting sequence [%s] from metadata storage for partition [%s]", sequence, partition);
       if (!taskTuningConfig.isSkipSequenceNumberAvailabilityCheck()) {
         if (!checkOffsetAvailability(partition, sequence)) {
