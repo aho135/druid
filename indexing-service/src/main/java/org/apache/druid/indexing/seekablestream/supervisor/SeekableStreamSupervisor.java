@@ -4303,21 +4303,12 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
         continue;
       }
 
-      // Count both actively reading tasks and pending completion tasks for this group
-      int totalTasksForGroup = taskGroup.tasks.size();
-      CopyOnWriteArrayList<TaskGroup> pendingCompletionGroups = pendingCompletionTaskGroups.get(groupId);
-      if (pendingCompletionGroups != null) {
-        for (TaskGroup pendingGroup : pendingCompletionGroups) {
-          totalTasksForGroup += pendingGroup.tasks.size();
-        }
-      }
-
-      if (ioConfig.getReplicas() > totalTasksForGroup) {
+      if (ioConfig.getReplicas() > taskGroup.tasks.size()) {
         log.info(
             "Number of tasks[%d] does not match configured numReplicas[%d] in taskGroup[%d], creating more tasks.",
-            totalTasksForGroup, ioConfig.getReplicas(), groupId
+            taskGroup.tasks.size(), ioConfig.getReplicas(), groupId
         );
-        createTasksForGroup(groupId, ioConfig.getReplicas() - totalTasksForGroup);
+        createTasksForGroup(groupId, ioConfig.getReplicas() - taskGroup.tasks.size());
         createdTask = true;
       }
     }
