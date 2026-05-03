@@ -147,9 +147,6 @@ public class KafkaBoundedSupervisorTest extends StreamIndexTestBase
     final String topic = IdUtils.getRandomId();
     kafkaServer.createTopicWithPartitions(topic, 2);
 
-    // Publish records before creating supervisor
-    final int totalRecords = publish1kRecords(topic, false);
-
     // Get the current end offsets for all partitions
     Map<String, Long> currentOffsets = kafkaServer.getPartitionOffsets(topic);
     Assertions.assertEquals(2, currentOffsets.size(), "Should have 2 partitions");
