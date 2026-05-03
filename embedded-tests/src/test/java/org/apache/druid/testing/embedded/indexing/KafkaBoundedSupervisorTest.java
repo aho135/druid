@@ -146,6 +146,7 @@ public class KafkaBoundedSupervisorTest extends StreamIndexTestBase
   {
     final String topic = IdUtils.getRandomId();
     kafkaServer.createTopicWithPartitions(topic, 2);
+    publish1kRecords(topic, false);
 
     // Get the current end offsets for all partitions
     Map<String, Long> currentOffsets = kafkaServer.getPartitionOffsets(topic);
