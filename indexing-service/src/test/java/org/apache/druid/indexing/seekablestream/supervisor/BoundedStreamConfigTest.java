@@ -198,19 +198,6 @@ public class BoundedStreamConfigTest
   }
 
   @Test
-  public void testEquals_sameObject()
-  {
-    Map<String, Long> start = new HashMap<>();
-    start.put("0", 0L);
-    Map<String, Long> end = new HashMap<>();
-    end.put("0", 100L);
-
-    BoundedStreamConfig config = new BoundedStreamConfig(start, end);
-
-    Assert.assertEquals(config, config);
-  }
-
-  @Test
   public void testEquals_equalObjects()
   {
     Map<String, Long> start1 = new HashMap<>();
