@@ -196,4 +196,147 @@ public class BoundedStreamConfigTest
     Assert.assertEquals(2, config.getStartSequenceNumbers().size());
     Assert.assertEquals(2, config.getEndSequenceNumbers().size());
   }
+
+  @Test
+  public void testEquals_sameObject()
+  {
+    Map<String, Long> start = new HashMap<>();
+    start.put("0", 0L);
+    Map<String, Long> end = new HashMap<>();
+    end.put("0", 100L);
+
+    BoundedStreamConfig config = new BoundedStreamConfig(start, end);
+
+    Assert.assertEquals(config, config);
+  }
+
+  @Test
+  public void testEquals_equalObjects()
+  {
+    Map<String, Long> start1 = new HashMap<>();
+    start1.put("0", 0L);
+    Map<String, Long> end1 = new HashMap<>();
+    end1.put("0", 100L);
+
+    Map<String, Long> start2 = new HashMap<>();
+    start2.put("0", 0L);
+    Map<String, Long> end2 = new HashMap<>();
+    end2.put("0", 100L);
+
+    BoundedStreamConfig config1 = new BoundedStreamConfig(start1, end1);
+    BoundedStreamConfig config2 = new BoundedStreamConfig(start2, end2);
+
+    Assert.assertEquals(config1, config2);
+    Assert.assertEquals(config1.hashCode(), config2.hashCode());
+  }
+
+  @Test
+  public void testEquals_nullObject()
+  {
+    Map<String, Long> start = new HashMap<>();
+    start.put("0", 0L);
+    Map<String, Long> end = new HashMap<>();
+    end.put("0", 100L);
+
+    BoundedStreamConfig config = new BoundedStreamConfig(start, end);
+
+    Assert.assertNotEquals(config, null);
+  }
+
+  @Test
+  public void testEquals_differentClass()
+  {
+    Map<String, Long> start = new HashMap<>();
+    start.put("0", 0L);
+    Map<String, Long> end = new HashMap<>();
+    end.put("0", 100L);
+
+    BoundedStreamConfig config = new BoundedStreamConfig(start, end);
+
+    Assert.assertNotEquals(config, "not a BoundedStreamConfig");
+  }
+
+  @Test
+  public void testEquals_differentStartOffsets()
+  {
+    Map<String, Long> start1 = new HashMap<>();
+    start1.put("0", 0L);
+    Map<String, Long> start2 = new HashMap<>();
+    start2.put("0", 10L);
+    Map<String, Long> end = new HashMap<>();
+    end.put("0", 100L);
+
+    BoundedStreamConfig config1 = new BoundedStreamConfig(start1, end);
+    BoundedStreamConfig config2 = new BoundedStreamConfig(start2, end);
+
+    Assert.assertNotEquals(config1, config2);
+  }
+
+  @Test
+  public void testEquals_differentEndOffsets()
+  {
+    Map<String, Long> start = new HashMap<>();
+    start.put("0", 0L);
+    Map<String, Long> end1 = new HashMap<>();
+    end1.put("0", 100L);
+    Map<String, Long> end2 = new HashMap<>();
+    end2.put("0", 200L);
+
+    BoundedStreamConfig config1 = new BoundedStreamConfig(start, end1);
+    BoundedStreamConfig config2 = new BoundedStreamConfig(start, end2);
+
+    Assert.assertNotEquals(config1, config2);
+  }
+
+  @Test
+  public void testHashCode_consistency()
+  {
+    Map<String, Long> start = new HashMap<>();
+    start.put("0", 0L);
+    Map<String, Long> end = new HashMap<>();
+    end.put("0", 100L);
+
+    BoundedStreamConfig config = new BoundedStreamConfig(start, end);
+
+    int hashCode1 = config.hashCode();
+    int hashCode2 = config.hashCode();
+
+    Assert.assertEquals(hashCode1, hashCode2);
+  }
+
+  @Test
+  public void testHashCode_equalObjectsSameHashCode()
+  {
+    Map<String, Long> start1 = new HashMap<>();
+    start1.put("0", 0L);
+    Map<String, Long> end1 = new HashMap<>();
+    end1.put("0", 100L);
+
+    Map<String, Long> start2 = new HashMap<>();
+    start2.put("0", 0L);
+    Map<String, Long> end2 = new HashMap<>();
+    end2.put("0", 100L);
+
+    BoundedStreamConfig config1 = new BoundedStreamConfig(start1, end1);
+    BoundedStreamConfig config2 = new BoundedStreamConfig(start2, end2);
+
+    Assert.assertEquals(config1.hashCode(), config2.hashCode());
+  }
+
+  @Test
+  public void testToString()
+  {
+    Map<String, Long> start = new HashMap<>();
+    start.put("0", 0L);
+    Map<String, Long> end = new HashMap<>();
+    end.put("0", 100L);
+
+    BoundedStreamConfig config = new BoundedStreamConfig(start, end);
+    String str = config.toString();
+
+    Assert.assertNotNull(str);
+    Assert.assertTrue(str.contains("BoundedStreamConfig"));
+    Assert.assertTrue(str.contains("startSequenceNumbers"));
+    Assert.assertTrue(str.contains("endSequenceNumbers"));
+  }
 }
