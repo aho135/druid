@@ -4175,26 +4175,13 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
     for (Integer groupId : partitionGroups.keySet()) {
       if (!activelyReadingTaskGroups.containsKey(groupId)) {
 
-        // In bounded mode, distinguish between completion and failure
-        if (ioConfig.isBounded()) {
-          if (hasTaskGroupReachedBoundedEnd(groupId)) {
-            // Task group completed successfully - don't recreate
-            log.debug(
-                "Bounded taskGroup[%d] has reached end offsets, skipping recreation",
-                groupId
-            );
-            continue; // Skip creating new task group
-          } else {
-            // Task group hasn't reached end - task must have failed, recreate it
-            log.info(
-                "Bounded taskGroup[%d] has not reached end offsets (current: %s, target: %s). " +
-                "Task may have failed, recreating to continue processing.",
-                groupId,
-                getCurrentOffsetsForGroup(groupId),
-                getEndOffsetsForGroup(groupId)
-            );
-            // Fall through to create new task group
-          }
+        // In bounded mode, check if task group has completed before recreating
+        if (ioConfig.isBounded() && hasTaskGroupReachedBoundedEnd(groupId)) {
+          log.debug(
+              "Bounded taskGroup[%d] has reached end offsets, skipping recreation",
+              groupId
+          );
+          continue; // Skip creating new task group
         }
 
         log.info("Creating new taskGroup[%d] for partitions[%s].", groupId, partitionGroups.get(groupId));
