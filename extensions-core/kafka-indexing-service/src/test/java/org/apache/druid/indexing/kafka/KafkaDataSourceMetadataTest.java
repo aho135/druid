@@ -948,6 +948,45 @@ public class KafkaDataSourceMetadataTest
     Assert.assertNotEquals(metadata1, metadata2);
   }
 
+  @Test
+  public void testEquals_sameSequenceNumbers_sameBoundedConfig()
+  {
+    Map<String, Long> boundedStart = ImmutableMap.of("0", 0L);
+    Map<String, Long> boundedEnd = ImmutableMap.of("0", 100L);
+    BoundedStreamConfig boundedConfig = new BoundedStreamConfig(boundedStart, boundedEnd);
+
+    SeekableStreamStartSequenceNumbers<KafkaTopicPartition, Long> partitions =
+        new SeekableStreamStartSequenceNumbers<>("foo", ImmutableMap.of(new KafkaTopicPartition(false, "foo", 0), 100L), ImmutableSet.of());
+
+    KafkaDataSourceMetadata metadata1 = new KafkaDataSourceMetadata(partitions, boundedConfig);
+    KafkaDataSourceMetadata metadata2 = new KafkaDataSourceMetadata(partitions, boundedConfig);
+
+    Assert.assertEquals(metadata1, metadata2);
+  }
+
+  @Test
+  public void testEquals_differentSequenceNumbers_differentBoundedConfig()
+  {
+    Map<String, Long> boundedStart1 = ImmutableMap.of("0", 0L);
+    Map<String, Long> boundedEnd1 = ImmutableMap.of("0", 100L);
+    BoundedStreamConfig boundedConfig1 = new BoundedStreamConfig(boundedStart1, boundedEnd1);
+
+    Map<String, Long> boundedStart2 = ImmutableMap.of("0", 0L);
+    Map<String, Long> boundedEnd2 = ImmutableMap.of("0", 200L);
+    BoundedStreamConfig boundedConfig2 = new BoundedStreamConfig(boundedStart2, boundedEnd2);
+
+    KafkaDataSourceMetadata metadata1 = new KafkaDataSourceMetadata(
+        new SeekableStreamStartSequenceNumbers<>("foo", ImmutableMap.of(new KafkaTopicPartition(false, "foo", 0), 100L), ImmutableSet.of()),
+        boundedConfig1
+    );
+    KafkaDataSourceMetadata metadata2 = new KafkaDataSourceMetadata(
+        new SeekableStreamStartSequenceNumbers<>("foo", ImmutableMap.of(new KafkaTopicPartition(false, "foo", 0), 200L), ImmutableSet.of()),
+        boundedConfig2
+    );
+
+    Assert.assertNotEquals(metadata1, metadata2);
+  }
+
   private static ObjectMapper createObjectMapper()
   {
     DruidModule module = new KafkaIndexTaskModule();
