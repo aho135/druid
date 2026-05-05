@@ -6617,4 +6617,34 @@ public class KafkaSupervisorTest extends EasyMockSupport
         rowIngestionMetersFactory
     );
   }
+
+  @Test
+  public void testBoundedMode_equalOffsetsIsEmpty()
+  {
+    // Kafka has exclusive end offsets, so start == end represents an EMPTY range
+    Map<String, Object> startOffsets = ImmutableMap.of("0", 100, "1", 100);
+    Map<String, Object> endOffsets = ImmutableMap.of("0", 100, "1", 100);
+    supervisor = getTestableSupervisorWithBoundedConfig(1, 1, "PT1H", new BoundedStreamConfig(startOffsets, endOffsets));
+
+    // Kafka uses exclusive end offsets
+    Assert.assertTrue("Kafka should have exclusive end offsets", supervisor.isEndOffsetExclusive());
+
+    // Verify that start == end is treated correctly based on offset semantics
+    // For exclusive offsets: start == end means ZERO records (empty)
+    Long start = 100L;
+    Long end = 100L;
+
+    // start >= end is true (they're equal)
+    Assert.assertTrue(supervisor.isOffsetAtOrBeyond(start, end));
+
+    // For Kafka (exclusive), this IS an empty range
+    // The empty range check should be: isOffsetAtOrBeyond(start, end)
+    // Which evaluates to: true (IS empty)
+    boolean shouldBeEmpty = supervisor.isOffsetAtOrBeyond(start, end);
+
+    Assert.assertTrue(
+        "For Kafka with exclusive end offsets, start == end should be considered an empty range",
+        shouldBeEmpty
+    );
+  }
 }

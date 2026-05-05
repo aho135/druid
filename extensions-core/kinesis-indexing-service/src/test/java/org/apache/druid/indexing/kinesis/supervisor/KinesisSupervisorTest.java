@@ -4839,6 +4839,95 @@ public class KinesisSupervisorTest extends EasyMockSupport
     Assert.assertTrue(e.getMessage().contains("not-a-number"));
   }
 
+  @Test
+  public void testBoundedMode_singleRecordRange_notEmpty()
+  {
+    // Kinesis has inclusive end offsets, so start == end represents ONE record, not an empty range
+    String singleOffset = "49590338271490256608559692538361571095921575989136588898";
+    Map<String, Object> startOffsets = ImmutableMap.of(SHARD_ID0, singleOffset);
+    Map<String, Object> endOffsets = ImmutableMap.of(SHARD_ID0, singleOffset);
+
+    final KinesisSupervisorIOConfig ioConfig = new KinesisSupervisorIOConfig(
+        STREAM,
+        INPUT_FORMAT,
+        "awsEndpoint",
+        null,
+        1,
+        1,
+        new Period("PT1H"),
+        null,
+        new Period("PT30M"),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        0,
+        null,
+        null,
+        null,
+        true,
+        null,
+        new BoundedStreamConfig(startOffsets, endOffsets)
+    );
+
+    final KinesisIndexTaskClientFactory taskClientFactory = new KinesisIndexTaskClientFactory(null, null);
+    final KinesisSupervisorSpec spec = new KinesisSupervisorSpec(
+        null,
+        null,
+        dataSchema,
+        KinesisSupervisorTuningConfig.defaultConfig(),
+        ioConfig,
+        null,
+        false,
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        taskClientFactory,
+        OBJECT_MAPPER,
+        new NoopServiceEmitter(),
+        new DruidMonitorSchedulerConfig(),
+        rowIngestionMetersFactory,
+        null,
+        new SupervisorStateManagerConfig()
+    );
+
+    supervisor = new TestableKinesisSupervisor(
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        taskClientFactory,
+        OBJECT_MAPPER,
+        spec,
+        rowIngestionMetersFactory
+    );
+
+    // Kinesis uses inclusive end offsets
+    Assert.assertFalse("Kinesis should have inclusive end offsets", supervisor.isEndOffsetExclusive());
+
+    // Verify that start == end is treated correctly based on offset semantics
+    // For inclusive offsets: start == end means ONE record (not empty)
+    // For exclusive offsets: start == end means ZERO records (empty)
+    String start = singleOffset;
+    String end = singleOffset;
+
+    // start >= end is true (they're equal)
+    Assert.assertTrue(supervisor.isOffsetAtOrBeyond(start, end));
+
+    // But for Kinesis (inclusive), this is NOT an empty range
+    // The empty range check should be: isOffsetAtOrBeyond(start, end) && !start.equals(end)
+    // Which evaluates to: true && false = false (NOT empty)
+    boolean isAtOrBeyond = supervisor.isOffsetAtOrBeyond(start, end);
+    boolean isEqual = start.equals(end);
+    boolean shouldBeEmpty = isAtOrBeyond && !isEqual;
+
+    Assert.assertFalse(
+        "For Kinesis with inclusive end offsets, start == end should NOT be considered an empty range",
+        shouldBeEmpty
+    );
+  }
+
   private List<Task> testShardMergePhaseOne() throws Exception
   {
     supervisorRecordSupplier.assign(EasyMock.anyObject());

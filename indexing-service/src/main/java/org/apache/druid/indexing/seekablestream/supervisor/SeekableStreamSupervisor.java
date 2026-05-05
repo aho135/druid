@@ -4517,13 +4517,24 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
       return false;
     }
 
-    // Check if start >= end for all partitions (empty range)
-    // If so, there's no work to do - treat as already complete
+    // Check if all partitions have empty ranges
+    // For exclusive end offsets (Kafka): start >= end means empty
+    // For inclusive end offsets (Kinesis): only start > end means empty (start == end is one record)
     boolean allPartitionsEmptyRange = true;
     for (PartitionIdType partition : partitionsInGroup) {
       SequenceOffsetType start = startOffsets.get(partition);
       SequenceOffsetType end = endOffsets.get(partition);
-      if (!isOffsetAtOrBeyond(start, end)) {
+
+      boolean isEmpty;
+      if (isEndOffsetExclusive()) {
+        // Exclusive: empty if start >= end
+        isEmpty = isOffsetAtOrBeyond(start, end);
+      } else {
+        // Inclusive: empty only if start > end
+        isEmpty = isOffsetAtOrBeyond(start, end) && !start.equals(end);
+      }
+
+      if (!isEmpty) {
         allPartitionsEmptyRange = false;
         break;
       }
@@ -4531,9 +4542,10 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
 
     if (allPartitionsEmptyRange) {
       log.warn(
-          "TaskGroup[%d] has empty range for all partitions (start >= end). "
+          "TaskGroup[%d] has empty range for all partitions (start %s end). "
           + "No work to do, marking as complete. Start: %s, End: %s",
           groupId,
+          isEndOffsetExclusive() ? ">=" : ">",
           startOffsets,
           endOffsets
       );
@@ -5449,4 +5461,10 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
    * sequences. In Kafka, start offsets are always inclusive.
    */
   protected abstract boolean useExclusiveStartSequenceNumberForNonFirstSequence();
+
+  /**
+   * Returns true if end offsets are exclusive (like Kafka), false if inclusive (like Kinesis).
+   * Used for bounded mode to correctly detect empty ranges: start == end is empty only if exclusive.
+   */
+  protected abstract boolean isEndOffsetExclusive();
 }

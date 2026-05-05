@@ -301,6 +301,12 @@ public abstract class SeekableStreamSupervisorTestBase
     {
       return false;
     }
+
+    @Override
+    protected boolean isEndOffsetExclusive()
+    {
+      return true;
+    }
   }
 
   class TestSeekableStreamSupervisor extends BaseTestSeekableStreamSupervisor

@@ -2616,6 +2616,12 @@ public class SeekableStreamSupervisorStateTest extends EasyMockSupport
       }
 
       @Override
+      protected boolean isEndOffsetExclusive()
+      {
+        return true;
+      }
+
+      @Override
       protected boolean isOffsetAtOrBeyond(String current, String target)
       {
         return Long.parseLong(current) >= Long.parseLong(target);
@@ -3302,6 +3308,12 @@ public class SeekableStreamSupervisorStateTest extends EasyMockSupport
     }
 
     @Override
+    protected boolean isEndOffsetExclusive()
+    {
+      return true;
+    }
+
+    @Override
     protected boolean isOffsetAtOrBeyond(String current, String target)
     {
       return Long.parseLong(current) >= Long.parseLong(target);
@@ -3441,6 +3453,12 @@ public class SeekableStreamSupervisorStateTest extends EasyMockSupport
           Duration.millis(spec.getMonitorSchedulerConfig().getEmissionDuration().getMillis()),
           this::emitNoticesQueueSize
       );
+    }
+
+    @Override
+    protected boolean isEndOffsetExclusive()
+    {
+      return true;
     }
   }
 

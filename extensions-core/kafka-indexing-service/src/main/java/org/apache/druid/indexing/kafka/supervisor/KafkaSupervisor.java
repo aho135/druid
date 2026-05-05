@@ -423,6 +423,12 @@ public class KafkaSupervisor extends SeekableStreamSupervisor<KafkaTopicPartitio
   }
 
   @Override
+  protected boolean isEndOffsetExclusive()
+  {
+    return true;
+  }
+
+  @Override
   public LagStats computeLagStats()
   {
     Map<KafkaTopicPartition, Long> partitionRecordLag = getPartitionRecordLag();

@@ -364,6 +364,12 @@ public class RabbitStreamSupervisor extends SeekableStreamSupervisor<String, Lon
   }
 
   @Override
+  protected boolean isEndOffsetExclusive()
+  {
+    return true;
+  }
+
+  @Override
   protected boolean isOffsetAtOrBeyond(Long current, Long target)
   {
     // RabbitMQ uses Long sequence numbers (delivery tags)

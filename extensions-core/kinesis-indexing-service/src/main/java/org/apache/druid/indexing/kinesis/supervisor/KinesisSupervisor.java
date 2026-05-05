@@ -429,6 +429,12 @@ public class KinesisSupervisor extends SeekableStreamSupervisor<String, String, 
     return true;
   }
 
+  @Override
+  protected boolean isEndOffsetExclusive()
+  {
+    return false;
+  }
+
   // Unlike the Kafka Indexing Service,
   // Kinesis reports lag metrics measured in time difference in milliseconds between the current sequence number and latest sequence number,
   // rather than message count.
