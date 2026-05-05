@@ -4826,6 +4826,19 @@ public class KinesisSupervisorTest extends EasyMockSupport
     ));
   }
 
+  @Test
+  public void testIsOffsetAtOrBeyond_invalidSequenceNumber()
+  {
+    supervisor = getTestableSupervisor(1, 1, true, "PT1H", null, null);
+
+    Exception e = Assert.assertThrows(
+        IllegalArgumentException.class,
+        () -> supervisor.isOffsetAtOrBeyond("not-a-number", "12345")
+    );
+    Assert.assertTrue(e.getMessage().contains("Invalid Kinesis sequence number"));
+    Assert.assertTrue(e.getMessage().contains("not-a-number"));
+  }
+
   private List<Task> testShardMergePhaseOne() throws Exception
   {
     supervisorRecordSupplier.assign(EasyMock.anyObject());
