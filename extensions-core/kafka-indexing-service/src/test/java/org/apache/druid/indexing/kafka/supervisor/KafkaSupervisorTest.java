@@ -6482,6 +6482,41 @@ public class KafkaSupervisorTest extends EasyMockSupport
                                                 .get(new KafkaTopicPartition(false, topic, 2)));
   }
 
+  @Test
+  public void testBoundedStreamConfig_allPartitionsEmptyRange_completesImmediately() throws Exception
+  {
+    // All partitions have start == end (nothing to process)
+    Map<String, Long> startOffsets = ImmutableMap.of("0", 100L, "1", 100L, "2", 100L);
+    Map<String, Long> endOffsets = ImmutableMap.of("0", 100L, "1", 100L, "2", 100L);
+    BoundedStreamConfig boundedConfig = new BoundedStreamConfig(startOffsets, endOffsets);
+
+    supervisor = getTestableSupervisorWithBoundedConfig(1, 1, "PT1H", boundedConfig);
+    addSomeEvents(100);
+
+    EasyMock.expect(taskMaster.getTaskQueue()).andReturn(Optional.of(taskQueue)).anyTimes();
+    EasyMock.expect(taskMaster.getTaskRunner()).andReturn(Optional.of(taskRunner)).anyTimes();
+    EasyMock.expect(taskQueue.getActiveTasksForDatasource(DATASOURCE)).andReturn(Map.of()).anyTimes();
+    EasyMock.expect(taskStorage.getActiveTasksByDatasource(DATASOURCE)).andReturn(ImmutableList.of()).anyTimes();
+    EasyMock.expect(indexerMetadataStorageCoordinator.retrieveDataSourceMetadata(DATASOURCE)).andReturn(
+        new KafkaDataSourceMetadata(null)
+    ).anyTimes();
+    // registerListener may or may not be called depending on when completion is detected
+    taskRunner.registerListener(EasyMock.anyObject(TaskRunnerListener.class), EasyMock.anyObject(Executor.class));
+    EasyMock.expectLastCall().anyTimes();
+    replayAll();
+
+    supervisor.start();
+    supervisor.runInternal();
+
+    // With all partitions having empty ranges, supervisor should detect completion
+    // State should transition to COMPLETED
+    SupervisorReport<KafkaSupervisorReportPayload> report = supervisor.getStatus();
+    Assert.assertEquals(
+        SupervisorStateManager.BasicState.COMPLETED,
+        report.getPayload().getDetailedState()
+    );
+  }
+
   private TestableKafkaSupervisor getTestableSupervisorWithBoundedConfig(
       int replicas,
       int taskCount,
