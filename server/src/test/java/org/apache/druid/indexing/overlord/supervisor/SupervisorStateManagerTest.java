@@ -123,4 +123,19 @@ public class SupervisorStateManagerTest
 
     Assert.assertFalse(SupervisorStateManager.BasicState.COMPLETED.isFirstRunOnly());
   }
+
+  @Test
+  public void testMarkRunFinished_completedStateSkipsHealthyCheck()
+  {
+    stateManagerConfig = new SupervisorStateManagerConfig();
+    SupervisorStateManager supervisorStateManager = new SupervisorStateManager(
+        stateManagerConfig,
+        false
+    );
+
+    supervisorStateManager.maybeSetState(SupervisorStateManager.BasicState.COMPLETED);
+    supervisorStateManager.markRunFinished();
+
+    Assert.assertEquals(SupervisorStateManager.BasicState.COMPLETED, supervisorStateManager.getSupervisorState());
+  }
 }

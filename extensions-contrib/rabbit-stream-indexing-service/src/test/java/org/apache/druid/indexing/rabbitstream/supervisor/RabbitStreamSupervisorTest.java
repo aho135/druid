@@ -548,4 +548,16 @@ public class RabbitStreamSupervisorTest extends EasyMockSupport
     Assert.assertTrue(supervisor.isOffsetAtOrBeyond(100L, 100L));
     Assert.assertFalse(supervisor.isOffsetAtOrBeyond(50L, 100L));
   }
+
+  @Test
+  public void testCreateSequenceOffsetFromObject_invalidType()
+  {
+    supervisor = getDefaultSupervisor();
+
+    Exception e = Assert.assertThrows(
+        IllegalArgumentException.class,
+        () -> supervisor.createSequenceOffsetFromObject(new Object())
+    );
+    Assert.assertTrue(e.getMessage().contains("Cannot convert"));
+  }
 }
