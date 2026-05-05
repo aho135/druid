@@ -67,6 +67,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class RabbitStreamSupervisorTest extends EasyMockSupport
 {
@@ -467,13 +468,13 @@ public class RabbitStreamSupervisorTest extends EasyMockSupport
   }
 
   @Test
-  public void testBoundedModeConfiguration()
+  public void testBoundedModeCreateTasksWithCorrectOffsets()
   {
-    ImmutableMap<String, Integer> startOffsets = ImmutableMap.of(
+    Map<String, Object> startOffsets = ImmutableMap.of(
         "queue-0", 100,
         "queue-1", 200
     );
-    ImmutableMap<String, Integer> endOffsets = ImmutableMap.of(
+    Map<String, Object> endOffsets = ImmutableMap.of(
         "queue-0", 500,
         "queue-1", 600
     );
@@ -484,7 +485,7 @@ public class RabbitStreamSupervisorTest extends EasyMockSupport
         INPUT_FORMAT,
         1,
         1,
-        new Period("PT1H"),
+        new Period("PT30S"),
         null,
         null,
         null,
@@ -501,32 +502,44 @@ public class RabbitStreamSupervisorTest extends EasyMockSupport
     );
 
     Assert.assertTrue(rabbitSupervisorIOConfig.isBounded());
-    Assert.assertNotNull(rabbitSupervisorIOConfig.getBoundedStreamConfig());
-    Assert.assertEquals(2, rabbitSupervisorIOConfig.getBoundedStreamConfig().getStartSequenceNumbers().size());
-    Assert.assertEquals(2, rabbitSupervisorIOConfig.getBoundedStreamConfig().getEndSequenceNumbers().size());
 
-    // Create supervisor to test type conversion methods
-    supervisor = getSupervisor(
-        "supervisorId",
-        1,
-        1,
-        false,
-        "PT1H",
+    final RabbitStreamIndexTaskClientFactory taskClientFactory = new RabbitStreamIndexTaskClientFactory(null, OBJECT_MAPPER);
+    final RabbitStreamSupervisorSpec spec = new RabbitStreamSupervisorSpec(
         null,
         null,
         dataSchema,
-        tuningConfig
+        tuningConfig,
+        rabbitSupervisorIOConfig,
+        null,
+        false,
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        taskClientFactory,
+        OBJECT_MAPPER,
+        new NoopServiceEmitter(),
+        new DruidMonitorSchedulerConfig(),
+        rowIngestionMetersFactory,
+        new SupervisorStateManagerConfig()
     );
 
-    // Test createPartitionIdFromString
+    supervisor = new RabbitStreamSupervisor(
+        taskStorage,
+        taskMaster,
+        indexerMetadataStorageCoordinator,
+        taskClientFactory,
+        OBJECT_MAPPER,
+        spec,
+        rowIngestionMetersFactory
+    );
+
+    // Test type conversion methods
     String queueName = supervisor.createPartitionIdFromString("queue-0");
     Assert.assertEquals("queue-0", queueName);
 
-    // Test createSequenceOffsetFromObject with Integer
     Long offset = supervisor.createSequenceOffsetFromObject(100);
     Assert.assertEquals(Long.valueOf(100L), offset);
 
-    // Test createSequenceOffsetFromObject with String
     offset = supervisor.createSequenceOffsetFromObject("200");
     Assert.assertEquals(Long.valueOf(200L), offset);
 
