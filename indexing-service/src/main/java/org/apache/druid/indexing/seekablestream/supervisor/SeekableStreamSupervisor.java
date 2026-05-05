@@ -4588,29 +4588,6 @@ public abstract class SeekableStreamSupervisor<PartitionIdType, SequenceOffsetTy
   }
 
   /**
-   * Get current offsets for all partitions in a task group from metadata storage.
-   */
-  private Map<PartitionIdType, SequenceOffsetType> getCurrentOffsetsForGroup(int groupId)
-  {
-    Map<PartitionIdType, SequenceOffsetType> allOffsets = getOffsetsFromMetadataStorage();
-    if (allOffsets == null || allOffsets.isEmpty()) {
-      return Collections.emptyMap();
-    }
-
-    Set<PartitionIdType> partitionsInGroup = partitionGroups.get(groupId);
-    if (partitionsInGroup == null) {
-      return Collections.emptyMap();
-    }
-
-    return partitionsInGroup.stream()
-        .filter(allOffsets::containsKey)
-        .collect(Collectors.toMap(
-            p -> p,
-            allOffsets::get
-        ));
-  }
-
-  /**
    * Get end offsets for all partitions in a task group from bounded config.
    */
   private Map<PartitionIdType, SequenceOffsetType> getEndOffsetsForGroup(int groupId)
