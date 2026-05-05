@@ -5570,6 +5570,20 @@ public class KafkaSupervisorTest extends EasyMockSupport
     Assert.assertFalse(supervisor.isOffsetAtOrBeyond(50L, 100L));
   }
 
+  @Test
+  public void testCreateSequenceOffsetFromObject_invalidType()
+  {
+    Map<String, Object> startOffsets = ImmutableMap.of("0", 0, "1", 0);
+    Map<String, Object> endOffsets = ImmutableMap.of("0", 100, "1", 100);
+    supervisor = getTestableSupervisorWithBoundedConfig(1, 1, "PT1H", new BoundedStreamConfig(startOffsets, endOffsets));
+
+    Exception e = Assert.assertThrows(
+        IllegalArgumentException.class,
+        () -> supervisor.createSequenceOffsetFromObject(new Object())
+    );
+    Assert.assertTrue(e.getMessage().contains("Cannot convert"));
+  }
+
   private void addSomeEvents(int numEventsPerPartition) throws Exception
   {
     // create topic manually
