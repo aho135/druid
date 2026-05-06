@@ -444,6 +444,7 @@ public class KafkaSupervisorIOConfigTest
         null,
         null,
         false,
+        null,
         null
     );
   }
