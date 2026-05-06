@@ -39,6 +39,7 @@ import org.apache.druid.indexing.seekablestream.supervisor.autoscaler.NoopTaskAu
 import org.apache.druid.jackson.DefaultObjectMapper;
 import org.apache.druid.java.util.common.StringUtils;
 import org.apache.druid.java.util.common.parsers.JSONPathSpec;
+import org.apache.druid.java.util.emitter.EmittingLogger;
 import org.apache.druid.java.util.metrics.DruidMonitorSchedulerConfig;
 import org.apache.druid.java.util.metrics.StubServiceEmitter;
 import org.apache.druid.metadata.MetadataSupervisorManager;
@@ -1536,7 +1537,7 @@ public class SeekableStreamSupervisorSpecTest extends SeekableStreamSupervisorTe
   @Test
   public void testBoundedStreamSupervisorSpec_runsWithBoundedConfig()
   {
-    org.apache.druid.java.util.emitter.EmittingLogger.registerEmitter(emitter);
+    EmittingLogger.registerEmitter(emitter);
 
     Map<String, Object> startOffsets = ImmutableMap.of("0", 0L);
     Map<String, Object> endOffsets = ImmutableMap.of("0", 100L);
