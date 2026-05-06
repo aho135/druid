@@ -898,6 +898,8 @@ c3.2xlarge
 defaultManualBrokerService
 maxPriority
 minPriority
+minScaleUpDelay
+minScaleDownDelay
 NUMBER_FEATURES
 NUMBER_OF_CONTRIBUTORS
 PreparedStatement
@@ -2083,6 +2085,7 @@ autoscalers
 batch_index_task
 cgroup
 classloader
+cooldown
 com.metamx
 common.runtime.properties
 cpuacct
@@ -2171,6 +2174,8 @@ s3n
 slf4j
 sql
 sqlQuery
+scale-up
+scale-down
 successfulSending
 [S]igar
 taskBlackListCleanupPeriod
